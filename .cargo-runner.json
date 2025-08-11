@@ -1,0 +1,16 @@
+{
+  "cargo": {
+    "command": "bazel",
+    "extra_args": [],
+    "extra_env": {},
+    "extra_test_binary_args": [],
+    "linked_projects": [
+      "/Users/uriah/Code/yoyo/combos/Cargo.toml",
+      "/Users/uriah/Code/yoyo/combos/frontend/Cargo.toml",
+      "/Users/uriah/Code/yoyo/combos/backend/Cargo.toml",
+      "/Users/uriah/Code/yoyo/server/Cargo.toml",
+      "/Users/uriah/Code/yoyo/corex/Cargo.toml"
+    ]
+  },
+  "overrides": []
+}
