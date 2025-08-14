@@ -1,9 +1,22 @@
 {
   "cargo": {
+    "command": "bazel",
     "extra_args": [],
     "extra_env": {},
     "extra_test_binary_args": [],
     "package": "frontend"
   },
-  "overrides": []
+  "overrides": [
+    {
+      "match": {
+        "file_path": "/Users/uriah/Code/yoyo/combos/frontend/src/main.rs",
+        "function_name": "it_works_too",
+        "module_path": "tests",
+        "package": "frontend"
+      },
+      "bazel": {
+        "extra_test_args": ["--nocapture"]
+      }
+    }
+  ]
 }

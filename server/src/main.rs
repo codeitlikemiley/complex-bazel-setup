@@ -55,3 +55,16 @@ async fn get_user(Path(name): Path<String>) -> impl IntoResponse {
     };
     Json(user)
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+     assert!(true); 
+    }
+
+    #[test]
+    fn sure_it_does() {
+       assert!(true); 
+    }
+}

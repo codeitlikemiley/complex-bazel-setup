@@ -5,17 +5,5 @@
     "extra_test_binary_args": [],
     "package": "server"
   },
-  "overrides": [
-    {
-      "cargo": {
-        "command": "bazel",
-        "subcommand": "run //server:server_bin"
-      },
-      "match": {
-        "file_path": "/Users/uriah/Code/yoyo/server/src/main.rs",
-        "module_path": "server",
-        "package": "server"
-      }
-    }
-  ]
+  "overrides": []
 }

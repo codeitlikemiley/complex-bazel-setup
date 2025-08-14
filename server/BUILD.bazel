@@ -1,5 +1,6 @@
 load("@server_crates//:defs.bzl", "all_crate_deps")
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test", "rust_test_suite")
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 
 rust_binary(
     name = "server_bin",
@@ -14,5 +15,17 @@ rust_test(
     name = "server_tests",
     crate = ":server_bin",
     deps = all_crate_deps(normal_dev = True),
+)
+
+
+rust_test_suite(
+    name = "integrated_tests_suite",
+    srcs = glob(["tests/**"]),
+    deps = all_crate_deps(normal_dev = True),
+)
+
+cargo_build_script(
+    name = "build_script",
+    srcs = ["build.rs"],
 )
 

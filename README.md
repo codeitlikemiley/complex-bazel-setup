@@ -38,6 +38,12 @@ This repository demonstrates a complex Rust monorepo setup using Bazel as the bu
             └── main.rs
 ```
 
+## Sync workspace
+
+```sh
+CARGO_BAZEL_REPIN=1 bazel sync --only=crates --enable_workspace
+```
+
 ## Key Learnings
 
 ### 1. Dependency Management
