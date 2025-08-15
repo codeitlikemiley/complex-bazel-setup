@@ -56,3 +56,18 @@ rust_test(
     crate = ":axum_example",
     deps = all_crate_deps(normal_dev = True),
 )
+
+rust_binary(
+    name = "proxy",
+    srcs = ["src/bin/proxy.rs"],
+    deps = all_crate_deps(normal = True) + [
+        "//corex:corex_lib",  # include if proxy depends on corex
+    ],
+    crate_root = "src/bin/proxy.rs",
+)
+
+rust_test(
+    name = "proxy_test",
+    crate = ":proxy",
+    deps = all_crate_deps(normal_dev = True),
+)
