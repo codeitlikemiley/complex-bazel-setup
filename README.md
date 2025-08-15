@@ -173,12 +173,15 @@ rust_test(
 )
 
 # Integration tests (tests/*.rs files)
-[rust_test(
-    name = "integration_test_{}".format(t.replace("/", "_").replace(".rs", "")),
-    srcs = [t],
-    edition = "2021",
-    deps = [":corex_lib"] + all_crate_deps(),
-) for t in glob(["tests/*.rs"])]
+[
+    rust_test(
+        name = "integration_test_{}".format(t.replace("/", "_").replace(".rs", "")),
+        srcs = [t],
+        edition = "2021",
+        deps = [":corex_lib"] + all_crate_deps(),
+    )
+    for t in glob(["tests/*.rs"])
+]
 
 # Doctests
 rust_doc_test(
@@ -193,12 +196,15 @@ rust_doc_test(
 load("@rules_rust//rust:defs.bzl", "rust_binary")
 
 # Build example binaries from examples/*.rs
-[rust_binary(
-    name = example.replace(".rs", ""),
-    srcs = [example],
-    edition = "2021",
-    deps = ["//corex:corex_lib"] + all_crate_deps(),
-) for example in glob(["examples/*.rs"])]
+[
+    rust_binary(
+        name = example.replace(".rs", ""),
+        srcs = [example],
+        edition = "2021",
+        deps = ["//corex:corex_lib"] + all_crate_deps(),
+    )
+    for example in glob(["examples/*.rs"])
+]
 ```
 
 ### Benchmarks Configuration
@@ -207,12 +213,15 @@ load("@rules_rust//rust:defs.bzl", "rust_binary")
 load("@rules_rust//rust:defs.bzl", "rust_benchmark")
 
 # Benchmarks from benches/*.rs
-[rust_benchmark(
-    name = bench.replace(".rs", ""),
-    srcs = [bench],
-    edition = "2021",
-    deps = ["//corex:corex_lib"] + all_crate_deps(),
-) for bench in glob(["benches/*.rs"])]
+[
+    rust_benchmark(
+        name = bench.replace(".rs", ""),
+        srcs = [bench],
+        edition = "2021",
+        deps = ["//corex:corex_lib"] + all_crate_deps(),
+    )
+    for bench in glob(["benches/*.rs"])
+]
 ```
 
 ### Complete BUILD.bazel Example
@@ -240,12 +249,15 @@ rust_test(
 )
 
 # Integration tests
-[rust_test(
-    name = "test_{}".format(t.replace("tests/", "").replace(".rs", "")),
-    srcs = [t],
-    edition = "2021",
-    deps = [":mylib"] + all_crate_deps(),
-) for t in glob(["tests/*.rs"])]
+[
+    rust_test(
+        name = "test_{}".format(t.replace("tests/", "").replace(".rs", "")),
+        srcs = [t],
+        edition = "2021",
+        deps = [":mylib"] + all_crate_deps(),
+    )
+    for t in glob(["tests/*.rs"])
+]
 
 # Doctests
 rust_doc_test(
@@ -254,20 +266,26 @@ rust_doc_test(
 )
 
 # Examples
-[rust_binary(
-    name = "example_{}".format(e.replace("examples/", "").replace(".rs", "")),
-    srcs = [e],
-    edition = "2021",
-    deps = [":mylib"] + all_crate_deps(),
-) for e in glob(["examples/*.rs"])]
+[
+    rust_binary(
+        name = "example_{}".format(e.replace("examples/", "").replace(".rs", "")),
+        srcs = [e],
+        edition = "2021",
+        deps = [":mylib"] + all_crate_deps(),
+    )
+    for e in glob(["examples/*.rs"])
+]
 
 # Benchmarks
-[rust_benchmark(
-    name = "bench_{}".format(b.replace("benches/", "").replace(".rs", "")),
-    srcs = [b],
-    edition = "2021",
-    deps = [":mylib"] + all_crate_deps(),
-) for b in glob(["benches/*.rs"])]
+[
+    rust_benchmark(
+        name = "bench_{}".format(b.replace("benches/", "").replace(".rs", "")),
+        srcs = [b],
+        edition = "2021",
+        deps = [":mylib"] + all_crate_deps(),
+    )
+    for b in glob(["benches/*.rs"])
+]
 ```
 
 ## Code Examples
@@ -503,6 +521,59 @@ fn test_combined_functionality() {
 }
 ```
 
+## Quick Commands
+
+```bash
+# Build everything
+bazel build //...
+
+# Test everything (unit, integration, doctests)
+bazel test //...
+
+# Run specific tests
+bazel test //corex:unit_tests
+bazel test //corex:test_integration
+bazel test //corex:doc_tests
+
+# Run examples
+bazel run //corex:example_basic
+bazel run //server:example_client
+
+# Run benchmarks
+bazel run //corex:bench_performance
+
+# Run specific binaries
+bazel run //server:server_bin
+bazel run //combos/backend:backend_bin
+
+# Add external dependencies
+cargo add <crate> --features <features>
+
+# Regenerate IDE configuration
+bazel run @rules_rust//tools/rust_analyzer:gen_rust_project -- //...
+```
+
+## Why Bazel for Rust?
+
+**Pros:**
+- Hermetic builds - reproducible across machines
+- Excellent caching - only rebuilds what changed
+- Scalable - handles large monorepos efficiently
+- Language agnostic - can mix Rust, Go, C++, etc.
+- Fine-grained dependency control
+
+**Cons:**
+- Learning curve - different from cargo-only workflows
+- IDE setup - requires extra configuration
+- Path dependencies - not supported, must use Bazel targets
+- Isolated dependencies - can lead to version conflicts
+
+## Conclusion
+
+This experiment shows that Bazel + Rust can work well for complex monorepo setups, but requires understanding the differences from pure Cargo workflows. The key is understanding that Bazel owns the build graph while Cargo only manages external dependencies.
+
+For detailed instructions, see [BAZEL_RUST_GUIDE.md](./BAZEL_RUST_GUIDE.md).
+
 ## Using Cargo Runner
 
 The `cargo runner` command provides an easy way to run any Rust target by just passing the file path. It automatically detects the target type and generates the appropriate Bazel command.
@@ -590,12 +661,11 @@ cargo runner run corex/benches/performance.rs:447
 ### Running Doctests
 
 ```bash
-# Run all doctests for a library
-cargo runner run corex/src/lib.rs --doctest
-# Generated command: bazel test //corex:doc_tests
+# Doctests are automatically detected and run when testing a library
+cargo runner run corex/src/lib.rs
+# Generated command: bazel test //corex:unit_tests (includes doctests)
 
-# Note: Individual doctest selection is not supported due to rustdoc limitations
-# This is a known limitation in both Bazel and rustdoc (only cargo supports it)
+# Note: Individual doctest selection is not supported - this is a known limitation
 ```
 
 ### Examples for All File Types
@@ -642,56 +712,3 @@ cargo runner run corex/build.rs
 cargo runner run combos/shared/src/lib.rs
 # Generated command: bazel test //combos/shared:unit_tests
 ```
-
-## Quick Commands
-
-```bash
-# Build everything
-bazel build //...
-
-# Test everything (unit, integration, doctests)
-bazel test //...
-
-# Run specific tests
-bazel test //corex:unit_tests
-bazel test //corex:test_integration
-bazel test //corex:doc_tests
-
-# Run examples
-bazel run //corex:example_basic
-bazel run //server:example_client
-
-# Run benchmarks
-bazel run //corex:bench_performance
-
-# Run specific binaries
-bazel run //server:server_bin
-bazel run //combos/backend:backend_bin
-
-# Add external dependencies
-cargo add <crate> --features <features>
-
-# Regenerate IDE configuration
-bazel run @rules_rust//tools/rust_analyzer:gen_rust_project -- //...
-```
-
-## Why Bazel for Rust?
-
-**Pros:**
-- Hermetic builds - reproducible across machines
-- Excellent caching - only rebuilds what changed
-- Scalable - handles large monorepos efficiently
-- Language agnostic - can mix Rust, Go, C++, etc.
-- Fine-grained dependency control
-
-**Cons:**
-- Learning curve - different from cargo-only workflows
-- IDE setup - requires extra configuration
-- Path dependencies - not supported, must use Bazel targets
-- Isolated dependencies - can lead to version conflicts
-
-## Conclusion
-
-This experiment shows that Bazel + Rust can work well for complex monorepo setups, but requires understanding the differences from pure Cargo workflows. The key is understanding that Bazel owns the build graph while Cargo only manages external dependencies.
-
-For detailed instructions, see [BAZEL_RUST_GUIDE.md](./BAZEL_RUST_GUIDE.md).
