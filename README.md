@@ -132,16 +132,166 @@ curl http://localhost:3000/
 curl http://localhost:3000/users/uriah
 ```
 
+## Complete Build Configuration
+
+### Binary Configuration
+```python
+# BUILD.bazel for a binary crate
+load("@rules_rust//rust:defs.bzl", "rust_binary")
+load("@crates//:defs.bzl", "all_crate_deps")
+
+rust_binary(
+    name = "server_bin",
+    srcs = glob(["src/**/*.rs"]),
+    edition = "2021",
+    deps = all_crate_deps() + [
+        "//corex:corex_lib",  # Local dependencies
+    ],
+)
+```
+
+### Library Configuration with Tests
+```python
+# BUILD.bazel for a library crate
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test", "rust_doc_test")
+load("@crates//:defs.bzl", "all_crate_deps")
+
+rust_library(
+    name = "corex_lib",
+    srcs = glob(["src/**/*.rs"]),
+    crate_name = "corex",
+    edition = "2021",
+    visibility = ["//visibility:public"],
+    deps = all_crate_deps(),
+)
+
+# Unit tests (tests in src/ files)
+rust_test(
+    name = "unit_tests",
+    crate = ":corex_lib",
+    edition = "2021",
+)
+
+# Integration tests (tests/*.rs files)
+[rust_test(
+    name = "integration_test_{}".format(t.replace("/", "_").replace(".rs", "")),
+    srcs = [t],
+    edition = "2021",
+    deps = [":corex_lib"] + all_crate_deps(),
+) for t in glob(["tests/*.rs"])]
+
+# Doctests
+rust_doc_test(
+    name = "doc_tests",
+    crate = ":corex_lib",
+)
+```
+
+### Examples Configuration
+```python
+# BUILD.bazel with examples
+load("@rules_rust//rust:defs.bzl", "rust_binary")
+
+# Build example binaries from examples/*.rs
+[rust_binary(
+    name = example.replace(".rs", ""),
+    srcs = [example],
+    edition = "2021",
+    deps = ["//corex:corex_lib"] + all_crate_deps(),
+) for example in glob(["examples/*.rs"])]
+```
+
+### Benchmarks Configuration
+```python
+# BUILD.bazel with benchmarks
+load("@rules_rust//rust:defs.bzl", "rust_benchmark")
+
+# Benchmarks from benches/*.rs
+[rust_benchmark(
+    name = bench.replace(".rs", ""),
+    srcs = [bench],
+    edition = "2021",
+    deps = ["//corex:corex_lib"] + all_crate_deps(),
+) for bench in glob(["benches/*.rs"])]
+```
+
+### Complete BUILD.bazel Example
+```python
+# Complete BUILD.bazel for a library with all features
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_binary", "rust_test", "rust_doc_test", "rust_benchmark")
+load("@crates//:defs.bzl", "all_crate_deps")
+
+package(default_visibility = ["//visibility:public"])
+
+# Main library
+rust_library(
+    name = "mylib",
+    srcs = glob(["src/**/*.rs"]),
+    crate_name = "mylib",
+    edition = "2021",
+    deps = all_crate_deps(),
+)
+
+# Unit tests
+rust_test(
+    name = "unit_tests",
+    crate = ":mylib",
+    edition = "2021",
+)
+
+# Integration tests
+[rust_test(
+    name = "test_{}".format(t.replace("tests/", "").replace(".rs", "")),
+    srcs = [t],
+    edition = "2021",
+    deps = [":mylib"] + all_crate_deps(),
+) for t in glob(["tests/*.rs"])]
+
+# Doctests
+rust_doc_test(
+    name = "doc_tests",
+    crate = ":mylib",
+)
+
+# Examples
+[rust_binary(
+    name = "example_{}".format(e.replace("examples/", "").replace(".rs", "")),
+    srcs = [e],
+    edition = "2021",
+    deps = [":mylib"] + all_crate_deps(),
+) for e in glob(["examples/*.rs"])]
+
+# Benchmarks
+[rust_benchmark(
+    name = "bench_{}".format(b.replace("benches/", "").replace(".rs", "")),
+    srcs = [b],
+    edition = "2021",
+    deps = [":mylib"] + all_crate_deps(),
+) for b in glob(["benches/*.rs"])]
+```
+
 ## Quick Commands
 
 ```bash
 # Build everything
 bazel build //...
 
-# Test everything
+# Test everything (unit, integration, doctests)
 bazel test //...
 
-# Run specific targets
+# Run specific tests
+bazel test //corex:unit_tests
+bazel test //corex:test_integration
+bazel test //corex:doc_tests
+
+# Run examples
+bazel run //corex:example_basic
+bazel run //server:example_client
+
+# Run benchmarks
+bazel run //corex:bench_performance
+
+# Run specific binaries
 bazel run //server:server_bin
 bazel run //combos/backend:backend_bin
 
