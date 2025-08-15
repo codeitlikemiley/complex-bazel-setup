@@ -270,6 +270,239 @@ rust_doc_test(
 ) for b in glob(["benches/*.rs"])]
 ```
 
+## Code Examples
+
+### Library Example (src/lib.rs)
+```rust
+//! # My Library
+//! 
+//! This is a library crate with doctests and examples.
+//! 
+//! ## Example
+//! 
+//! ```
+//! use mylib::Calculator;
+//! 
+//! let calc = Calculator::new();
+//! assert_eq!(calc.add(2, 3), 5);
+//! ```
+
+/// A simple calculator with basic operations
+pub struct Calculator;
+
+impl Calculator {
+    /// Creates a new Calculator instance
+    /// 
+    /// # Example
+    /// 
+    /// ```
+    /// use mylib::Calculator;
+    /// let calc = Calculator::new();
+    /// ```
+    pub fn new() -> Self {
+        Calculator
+    }
+
+    /// Adds two numbers together
+    /// 
+    /// # Arguments
+    /// 
+    /// * `a` - First number
+    /// * `b` - Second number
+    /// 
+    /// # Example
+    /// 
+    /// ```
+    /// use mylib::Calculator;
+    /// let calc = Calculator::new();
+    /// assert_eq!(calc.add(10, 20), 30);
+    /// assert_eq!(calc.add(-5, 5), 0);
+    /// ```
+    pub fn add(&self, a: i32, b: i32) -> i32 {
+        a + b
+    }
+}
+
+/// Public utility function with doctest
+/// 
+/// # Example
+/// 
+/// ```
+/// use mylib::format_greeting;
+/// assert_eq!(format_greeting("World"), "Hello, World!");
+/// ```
+pub fn format_greeting(name: &str) -> String {
+    format!("Hello, {}!", name)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_calculator_add() {
+        let calc = Calculator::new();
+        assert_eq!(calc.add(2, 2), 4);
+    }
+
+    #[test]
+    fn test_format_greeting() {
+        assert_eq!(format_greeting("Rust"), "Hello, Rust!");
+    }
+}
+```
+
+### Binary Example (src/main.rs)
+```rust
+use axum::{
+    routing::{get, post},
+    http::StatusCode,
+    Json, Router,
+};
+use serde::{Deserialize, Serialize};
+use std::net::SocketAddr;
+use corex::Calculator;  // Using local dependency
+
+#[derive(Serialize, Deserialize, Debug)]
+struct User {
+    id: u32,
+    name: String,
+}
+
+#[tokio::main]
+async fn main() {
+    // Build our application with routes
+    let app = Router::new()
+        .route("/", get(root))
+        .route("/users/:id", get(get_user))
+        .route("/calculate/add/:a/:b", get(add_numbers));
+
+    // Run it on localhost:3000
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    println!("Listening on {}", addr);
+    
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
+
+// Basic handler
+async fn root() -> &'static str {
+    "Hello, World!"
+}
+
+// Handler using path parameters
+async fn get_user(
+    axum::extract::Path(id): axum::extract::Path<u32>,
+) -> (StatusCode, Json<User>) {
+    let user = User {
+        id,
+        name: format!("User {}", id),
+    };
+    (StatusCode::OK, Json(user))
+}
+
+// Handler using local library
+async fn add_numbers(
+    axum::extract::Path((a, b)): axum::extract::Path<(i32, i32)>,
+) -> String {
+    let calc = Calculator::new();
+    format!("{} + {} = {}", a, b, calc.add(a, b))
+}
+```
+
+### Example File (examples/client.rs)
+```rust
+//! Example demonstrating how to use the library
+//! 
+//! Run with: bazel run //mylib:example_client
+
+use mylib::{Calculator, format_greeting};
+
+fn main() {
+    // Using the calculator
+    let calc = Calculator::new();
+    println!("Basic addition: 5 + 3 = {}", calc.add(5, 3));
+    
+    // Using utility functions
+    println!("{}", format_greeting("Bazel"));
+    
+    // More complex example
+    let numbers = vec![1, 2, 3, 4, 5];
+    let sum = numbers.iter().fold(0, |acc, &x| calc.add(acc, x));
+    println!("Sum of {:?} = {}", numbers, sum);
+}
+```
+
+### Benchmark File (benches/performance.rs)
+```rust
+//! Performance benchmarks for the library
+//! 
+//! Run with: bazel run //mylib:bench_performance
+
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use mylib::Calculator;
+
+fn benchmark_add(c: &mut Criterion) {
+    let calc = Calculator::new();
+    
+    c.bench_function("add two numbers", |b| {
+        b.iter(|| {
+            calc.add(black_box(42), black_box(58))
+        })
+    });
+}
+
+fn benchmark_add_many(c: &mut Criterion) {
+    let calc = Calculator::new();
+    let numbers: Vec<i32> = (1..=1000).collect();
+    
+    c.bench_function("add 1000 numbers", |b| {
+        b.iter(|| {
+            numbers.iter().fold(0, |acc, &x| calc.add(acc, x))
+        })
+    });
+}
+
+criterion_group!(benches, benchmark_add, benchmark_add_many);
+criterion_main!(benches);
+```
+
+### Test File (tests/integration_test.rs)
+```rust
+//! Integration tests for the library
+//! 
+//! Run with: bazel test //mylib:test_integration_test
+
+use mylib::{Calculator, format_greeting};
+
+#[test]
+fn test_calculator_operations() {
+    let calc = Calculator::new();
+    
+    // Test various scenarios
+    assert_eq!(calc.add(0, 0), 0);
+    assert_eq!(calc.add(100, 200), 300);
+    assert_eq!(calc.add(-50, 50), 0);
+}
+
+#[test]
+fn test_greeting_formats() {
+    assert_eq!(format_greeting(""), "Hello, !");
+    assert_eq!(format_greeting("Alice"), "Hello, Alice!");
+    assert_eq!(format_greeting("Bob & Carol"), "Hello, Bob & Carol!");
+}
+
+#[test]
+fn test_combined_functionality() {
+    let calc = Calculator::new();
+    let result = calc.add(10, 20);
+    let message = format_greeting(&format!("Result: {}", result));
+    assert_eq!(message, "Hello, Result: 30!");
+}
+```
+
 ## Quick Commands
 
 ```bash
