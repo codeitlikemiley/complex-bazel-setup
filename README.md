@@ -507,6 +507,11 @@ fn test_combined_functionality() {
 
 The `cargo runner` command provides an easy way to run any Rust target by just passing the file path. It automatically detects the target type and generates the appropriate Bazel command.
 
+To see the generated command without executing it, use the `--dry-run` flag:
+```bash
+cargo runner run --dry-run <path/to/file.rs>
+```
+
 ### Basic Usage
 
 ```bash
@@ -530,6 +535,14 @@ cargo runner run combos/backend/src/main.rs
 
 cargo runner run combos/frontend/src/main.rs
 # Generated command: bazel run //combos/frontend:frontend_bin
+
+# Run binaries in src/bin/ directory
+cargo runner run server/src/bin/proxy.rs
+# Generated command: bazel run //server:proxy
+
+# Note: src/bin/ binaries can also have tests - use line numbers to run tests
+cargo runner run server/src/bin/proxy.rs:10
+# Generated command: bazel test //server:proxy_test --test_output streamed --test_arg --exact --test_arg bin::proxy
 ```
 
 ### Running Tests
@@ -595,6 +608,11 @@ cargo runner run corex/src/lib.rs:44  # Run test at line 44
 # Binary files (src/main.rs) - runs the binary
 cargo runner run server/src/main.rs
 cargo runner run combos/backend/src/main.rs
+
+# Binary files in src/bin/ - can run binary or tests
+cargo runner run server/src/bin/proxy.rs          # Runs the binary
+cargo runner run server/src/bin/proxy.rs:4        # Runs tests in the binary
+# Generated command: bazel test //server:proxy_test --test_output streamed --test_arg --exact --test_arg bin::proxy
 
 # Test files (tests/*.rs) - runs integration tests
 cargo runner run corex/tests/integration_test.rs
