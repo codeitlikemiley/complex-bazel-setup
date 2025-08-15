@@ -12,14 +12,14 @@ rust_binary(
 )
 
 rust_test(
-    name = "server_tests",
+    name = "tests",
     crate = ":server_bin",
     deps = all_crate_deps(normal_dev = True),
 )
 
 
 rust_test_suite(
-    name = "integrated_tests_suite",
+    name = "integration_tests",
     srcs = glob(["tests/**"]),
     deps = all_crate_deps(normal_dev = True),
 )
@@ -29,3 +29,15 @@ cargo_build_script(
     srcs = ["build.rs"],
 )
 
+rust_binary(
+    name = "bench",
+    srcs = ["benches/fibonacci_benchmark.rs"],
+    deps = all_crate_deps(normal_dev = True),
+    crate_root = "benches/fibonacci_benchmark.rs",
+)
+
+
+rust_test(
+    name = "bench_test",
+    crate = ":bench",   
+)
