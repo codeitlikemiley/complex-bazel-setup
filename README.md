@@ -503,6 +503,128 @@ fn test_combined_functionality() {
 }
 ```
 
+## Using Cargo Runner
+
+The `cargo runner` command provides an easy way to run any Rust target by just passing the file path. It automatically detects the target type and generates the appropriate Bazel command.
+
+### Basic Usage
+
+```bash
+# Run any file - cargo runner will detect the type and run it
+cargo runner run <path/to/file.rs>
+
+# Run at specific line number (useful for tests)
+cargo runner run <path/to/file.rs>:<line_number>
+```
+
+### Running Binaries
+
+```bash
+# Run main binary
+cargo runner run server/src/main.rs
+# Generated command: bazel run //server:server_bin
+
+# Run workspace binaries
+cargo runner run combos/backend/src/main.rs
+# Generated command: bazel run //combos/backend:backend_bin
+
+cargo runner run combos/frontend/src/main.rs
+# Generated command: bazel run //combos/frontend:frontend_bin
+```
+
+### Running Tests
+
+```bash
+# Run all tests in a library
+cargo runner run corex/src/lib.rs
+# Generated command: bazel test //corex:unit_tests
+
+# Run all tests in a test file
+cargo runner run corex/tests/integration_test.rs
+# Generated command: bazel test //corex:test_integration_test
+
+# Run specific test by line number
+cargo runner run corex/src/lib.rs:67
+# Generated command: bazel test //corex:unit_tests --test_filter=test_calculator_add
+
+cargo runner run corex/tests/integration_test.rs:481
+# Generated command: bazel test //corex:test_integration_test --test_filter=test_calculator_operations
+```
+
+### Running Examples
+
+```bash
+# Run example file
+cargo runner run corex/examples/client.rs
+# Generated command: bazel run //corex:example_client
+
+cargo runner run server/examples/demo.rs
+# Generated command: bazel run //server:example_demo
+```
+
+### Running Benchmarks
+
+```bash
+# Run all benchmarks in a file
+cargo runner run corex/benches/performance.rs
+# Generated command: bazel run //corex:bench_performance
+
+# Run specific benchmark by line number
+cargo runner run corex/benches/performance.rs:447
+# Generated command: bazel run //corex:bench_performance -- benchmark_add
+```
+
+### Running Doctests
+
+```bash
+# Run all doctests for a library
+cargo runner run corex/src/lib.rs --doctest
+# Generated command: bazel test //corex:doc_tests
+
+# Note: Individual doctest selection is not supported due to rustdoc limitations
+# This is a known limitation in both Bazel and rustdoc (only cargo supports it)
+```
+
+### Examples for All File Types
+
+```bash
+# Library files (src/lib.rs) - runs unit tests
+cargo runner run corex/src/lib.rs
+cargo runner run corex/src/lib.rs:44  # Run test at line 44
+
+# Binary files (src/main.rs) - runs the binary
+cargo runner run server/src/main.rs
+cargo runner run combos/backend/src/main.rs
+
+# Test files (tests/*.rs) - runs integration tests
+cargo runner run corex/tests/integration_test.rs
+cargo runner run server/tests/api_test.rs:25  # Run specific test
+
+# Example files (examples/*.rs) - runs the example
+cargo runner run corex/examples/basic.rs
+cargo runner run server/examples/client.rs
+
+# Benchmark files (benches/*.rs) - runs benchmarks
+cargo runner run corex/benches/performance.rs
+cargo runner run server/benches/load_test.rs:50  # Run specific benchmark
+
+# Module files in src/ - runs unit tests for that module
+cargo runner run corex/src/utils.rs
+cargo runner run server/src/handlers.rs:120  # Run specific test
+```
+
+### Build Scripts and Other Files
+
+```bash
+# Build scripts
+cargo runner run corex/build.rs
+# Generated command: bazel build //corex:build_script
+
+# Workspace member libraries
+cargo runner run combos/shared/src/lib.rs
+# Generated command: bazel test //combos/shared:unit_tests
+```
+
 ## Quick Commands
 
 ```bash
