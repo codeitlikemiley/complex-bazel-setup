@@ -172,16 +172,15 @@ rust_test(
     edition = "2021",
 )
 
-# Integration tests (tests/*.rs files)
-[
-    rust_test(
-        name = "integration_test_{}".format(t.replace("/", "_").replace(".rs", "")),
-        srcs = [t],
-        edition = "2021",
-        deps = [":corex_lib"] + all_crate_deps(),
-    )
-    for t in glob(["tests/*.rs"])
-]
+# Integration tests (tests/*.rs files) - use list comprehension  
+# This creates multiple rust_test targets, one for each test file
+# Note: In Bazel, list comprehensions at the top level don't use square brackets
+rust_test(
+    name = "integration_test_{}".format(t.replace("/", "_").replace(".rs", "")),
+    srcs = [t],
+    edition = "2021",
+    deps = [":corex_lib"] + all_crate_deps(),
+) for t in glob(["tests/*.rs"])
 
 # Doctests
 rust_doc_test(
@@ -196,15 +195,12 @@ rust_doc_test(
 load("@rules_rust//rust:defs.bzl", "rust_binary")
 
 # Build example binaries from examples/*.rs
-[
-    rust_binary(
-        name = example.replace(".rs", ""),
-        srcs = [example],
-        edition = "2021",
-        deps = ["//corex:corex_lib"] + all_crate_deps(),
-    )
-    for example in glob(["examples/*.rs"])
-]
+rust_binary(
+    name = example.replace(".rs", ""),
+    srcs = [example],
+    edition = "2021",
+    deps = ["//corex:corex_lib"] + all_crate_deps(),
+) for example in glob(["examples/*.rs"])
 ```
 
 ### Benchmarks Configuration
@@ -213,15 +209,12 @@ load("@rules_rust//rust:defs.bzl", "rust_binary")
 load("@rules_rust//rust:defs.bzl", "rust_benchmark")
 
 # Benchmarks from benches/*.rs
-[
-    rust_benchmark(
-        name = bench.replace(".rs", ""),
-        srcs = [bench],
-        edition = "2021",
-        deps = ["//corex:corex_lib"] + all_crate_deps(),
-    )
-    for bench in glob(["benches/*.rs"])
-]
+rust_benchmark(
+    name = bench.replace(".rs", ""),
+    srcs = [bench],
+    edition = "2021",
+    deps = ["//corex:corex_lib"] + all_crate_deps(),
+) for bench in glob(["benches/*.rs"])
 ```
 
 ### Complete BUILD.bazel Example
@@ -249,15 +242,12 @@ rust_test(
 )
 
 # Integration tests
-[
-    rust_test(
-        name = "test_{}".format(t.replace("tests/", "").replace(".rs", "")),
-        srcs = [t],
-        edition = "2021",
-        deps = [":mylib"] + all_crate_deps(),
-    )
-    for t in glob(["tests/*.rs"])
-]
+rust_test(
+    name = "test_{}".format(t.replace("tests/", "").replace(".rs", "")),
+    srcs = [t],
+    edition = "2021",
+    deps = [":mylib"] + all_crate_deps(),
+) for t in glob(["tests/*.rs"])
 
 # Doctests
 rust_doc_test(
@@ -266,26 +256,20 @@ rust_doc_test(
 )
 
 # Examples
-[
-    rust_binary(
-        name = "example_{}".format(e.replace("examples/", "").replace(".rs", "")),
-        srcs = [e],
-        edition = "2021",
-        deps = [":mylib"] + all_crate_deps(),
-    )
-    for e in glob(["examples/*.rs"])
-]
+rust_binary(
+    name = "example_{}".format(e.replace("examples/", "").replace(".rs", "")),
+    srcs = [e],
+    edition = "2021",
+    deps = [":mylib"] + all_crate_deps(),
+) for e in glob(["examples/*.rs"])
 
 # Benchmarks
-[
-    rust_benchmark(
-        name = "bench_{}".format(b.replace("benches/", "").replace(".rs", "")),
-        srcs = [b],
-        edition = "2021",
-        deps = [":mylib"] + all_crate_deps(),
-    )
-    for b in glob(["benches/*.rs"])
-]
+rust_benchmark(
+    name = "bench_{}".format(b.replace("benches/", "").replace(".rs", "")),
+    srcs = [b],
+    edition = "2021",
+    deps = [":mylib"] + all_crate_deps(),
+) for b in glob(["benches/*.rs"])
 ```
 
 ## Code Examples
