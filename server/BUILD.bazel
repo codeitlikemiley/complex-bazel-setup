@@ -41,3 +41,18 @@ rust_test(
     name = "bench_test",
     crate = ":bench",   
 )
+
+rust_binary(
+    name = "axum_example",
+    srcs = ["examples/axum.rs"],
+    deps = all_crate_deps(normal_dev = True) + [
+        "//corex:corex_lib",  # include if needed
+    ],
+    crate_root = "examples/axum.rs",
+)
+
+rust_test(
+    name = "axum_example_test",
+    crate = ":axum_example",
+    deps = all_crate_deps(normal_dev = True),
+)
