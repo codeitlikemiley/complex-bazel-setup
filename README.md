@@ -86,20 +86,23 @@ CARGO_BAZEL_REPIN=1 bazel sync --only=crates --enable_workspace
 ### 3. IDE Integration
 
 **rust-analyzer Setup**
-```bash
-# Generate rust-project.json
-bazel run @rules_rust//tools/rust_analyzer:gen_rust_project -- //...
 
-# VS Code settings.json
-{
-    "rust-analyzer.linkedProjects": ["rust-project.json"]
-}
+No editor configuration is required. rust-analyzer discovers `corex/`, `server/`
+and `combos/` as three separate Cargo projects on its own.
+
+For Bazel-accurate metadata — the Bazel-only edges such as `//corex:corex_lib`,
+and the exact flags Bazel passes to rustc — generate a `rust-project.json`:
+
+```bash
+./build-ra.sh
+# wraps: bazel run @rules_rust//tools/rust_analyzer:gen_rust_project -- //...
 ```
 
-**Automation Options**
-- VS Code tasks (see `.vscode/tasks.json`)
-- Keyboard shortcuts: `Cmd+R Cmd+R` to regenerate
-- Shell script: `./refresh-rust-analyzer.sh`
+That file is gitignored on purpose: it embeds absolute output-base paths and the
+host target triple, so it is only valid on the machine that produced it. Re-run
+`./build-ra.sh` after adding or renaming a Bazel target — a stale file points
+rust-analyzer at labels that no longer exist, and its mere presence stops
+rust-analyzer from falling back to Cargo.
 
 ### 4. Common Issues & Solutions
 
