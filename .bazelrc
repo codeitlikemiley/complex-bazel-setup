@@ -18,6 +18,10 @@ build --compilation_mode=dbg
 build:release --compilation_mode=opt
 build:release --strip=always
 
+# ---------- rules_rust ----------
+# Verified against all 17 targets with rules_rust 0.63.0 / Bazel 8.7.0.
+build --@rules_rust//rust/settings:pipelined_compilation=True
+
 # ---------- caching ----------
 build --disk_cache=~/.cache/bazel-disk
 build --repository_cache=~/.cache/bazel-repo
@@ -36,9 +40,15 @@ coverage --instrumentation_filter=^//corex[:/],^//server[:/],^//combos[:/]
 build:ci --announce_rc --verbose_failures --keep_going
 build:ci --disk_cache=/tmp/bazel-disk
 test:ci --flaky_test_attempts=1
-# Fail on a stale MODULE.bazel.lock instead of silently re-resolving. Requires
-# the lock to be committed -- generate it with one `bazel build //...` and check
-# it in; it is no longer gitignored.
+# Surfaces targets whose declared size does not match how long they actually
+# run. Every test in this repo is currently MODERATE and finishes in ~0.1s;
+# they want size = "small". CI-only so local runs stay quiet.
+test:ci --test_verbose_timeout_warnings
+# Fail on a stale MODULE.bazel.lock instead of silently re-resolving.
+# PREREQUISITE: MODULE.bazel.lock must be committed first, and it must be
+# generated on a machine that can reach the real bcr.bazel.build -- a lock
+# produced against a local file:// registry has an empty registryFileHashes and
+# will be treated as out of date here.
 common:ci --lockfile_mode=error
 
 try-import %workspace%/.bazelrc.user
