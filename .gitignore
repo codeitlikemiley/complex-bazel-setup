@@ -1,9 +1,11 @@
 bazel-*
 .bazelrc.user
 .bazelversion.user
-MODULE.bazel.lock
 .cache/
 .bazel/
+
+# NOTE: MODULE.bazel.lock is deliberately NOT ignored. It is what makes a bzlmod
+# build reproducible and what --lockfile_mode=error checks against in CI.
 
 # Rust
 target/

@@ -9,6 +9,7 @@ rust_binary(
         "//corex:corex_lib",
     ],
     crate_root = "src/main.rs",
+    edition = "2024",
 )
 
 rust_test(
@@ -22,11 +23,13 @@ rust_test_suite(
     name = "integration_tests",
     srcs = glob(["tests/**"]),
     deps = all_crate_deps(normal_dev = True),
+    edition = "2024",
 )
 
 cargo_build_script(
     name = "build_script",
     srcs = ["build.rs"],
+    edition = "2024",
 )
 
 rust_binary(
@@ -34,12 +37,13 @@ rust_binary(
     srcs = ["benches/fibonacci_benchmark.rs"],
     deps = all_crate_deps(normal_dev = True),
     crate_root = "benches/fibonacci_benchmark.rs",
+    edition = "2024",
 )
 
 
 rust_test(
     name = "bench_test",
-    crate = ":bench",   
+    crate = ":bench",
 )
 
 rust_binary(
@@ -49,6 +53,7 @@ rust_binary(
         "//corex:corex_lib",  # include if needed
     ],
     crate_root = "examples/axum.rs",
+    edition = "2024",
 )
 
 rust_test(
@@ -64,6 +69,7 @@ rust_binary(
         "//corex:corex_lib",  # include if proxy depends on corex
     ],
     crate_root = "src/bin/proxy.rs",
+    edition = "2024",
 )
 
 rust_test(

@@ -1,0 +1,44 @@
+# Bazel configuration for complex-bazel-setup.
+#
+#   Bazel version      -> .bazelversion
+#   Rust toolchain     -> MODULE.bazel (rust.toolchain) + rust-toolchain.toml
+#   Personal overrides -> .bazelrc.user (gitignored, imported at the bottom)
+
+# ---------- correctness ----------
+# An empty glob is a typo or a moved file, not an empty list. On by default in
+# Bazel 8; pinned here so it survives a version change.
+build --incompatible_disallow_empty_glob
+
+# ---------- build profiles ----------
+# Bazel's default compilation mode (fastbuild) is opt-level 0 with NO debug
+# info, while `cargo build` gives you -C debuginfo=2. Without this, a backtrace
+# out of `bazel run //server:server_bin` has bare addresses and a debugger has
+# nothing to attach to -- one of the ways the two build systems disagreed.
+build --compilation_mode=dbg
+build:release --compilation_mode=opt
+build:release --strip=always
+
+# ---------- caching ----------
+build --disk_cache=~/.cache/bazel-disk
+build --repository_cache=~/.cache/bazel-repo
+
+# ---------- tests ----------
+test --test_output=errors
+test --build_tests_only
+
+# ---------- coverage ----------
+# rules_rust ships llvm-tools with every toolchain >= 1.45.0 (repositories.bzl),
+# so `bazel coverage //...` needs nothing beyond the pinned toolchain.
+coverage --combined_report=lcov
+coverage --instrumentation_filter=^//corex[:/],^//server[:/],^//combos[:/]
+
+# ---------- CI ----------
+build:ci --announce_rc --verbose_failures --keep_going
+build:ci --disk_cache=/tmp/bazel-disk
+test:ci --flaky_test_attempts=1
+# Fail on a stale MODULE.bazel.lock instead of silently re-resolving. Requires
+# the lock to be committed -- generate it with one `bazel build //...` and check
+# it in; it is no longer gitignored.
+common:ci --lockfile_mode=error
+
+try-import %workspace%/.bazelrc.user

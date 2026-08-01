@@ -2,5 +2,7 @@
 name = "frontend"
 version = "0.1.0"
 edition = "2024"
+# Matches the pin in rust-toolchain.toml and MODULE.bazel.
+rust-version = "1.94"
 
 [dependencies]
