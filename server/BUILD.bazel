@@ -6,15 +6,21 @@ VERSION = "0.1.0"
 # Everything testable lives in the library; the binary is a thin wrapper.
 rust_library(
     name = "server_lib",
-    srcs = glob(["src/**/*.rs"], exclude = ["src/main.rs", "src/bin/**"]),
+    srcs = glob(
+        ["src/**/*.rs"],
+        exclude = [
+            "src/main.rs",
+            "src/bin/**",
+        ],
+    ),
     crate_name = "server",
     crate_root = "src/lib.rs",
     edition = "2024",
-    version = VERSION,
-    rustc_env = {"CARGO_PKG_NAME": "server"},
-    deps = all_crate_deps(normal = True) + ["//corex:corex_lib"],
     proc_macro_deps = all_crate_deps(proc_macro = True),
+    rustc_env = {"CARGO_PKG_NAME": "server"},
+    version = VERSION,
     visibility = ["//visibility:public"],
+    deps = all_crate_deps(normal = True) + ["//corex:corex_lib"],
 )
 
 # `deps` is deliberately absent: a rust_test with `crate` set unions its deps
@@ -22,10 +28,10 @@ rust_library(
 # criterion plus ~30 transitive crates to targets that never referenced them.
 rust_test(
     name = "server_lib_test",
-    crate = ":server_lib",
     size = "small",
-    version = VERSION,
+    crate = ":server_lib",
     rustc_env = {"CARGO_PKG_NAME": "server"},
+    version = VERSION,
 )
 
 rust_binary(
@@ -34,10 +40,10 @@ rust_binary(
     crate_name = "server",
     crate_root = "src/main.rs",
     edition = "2024",
-    version = VERSION,
     rustc_env = {"CARGO_PKG_NAME": "server"},
-    deps = all_crate_deps(normal = True) + [":server_lib"],
+    version = VERSION,
     visibility = ["//visibility:public"],
+    deps = all_crate_deps(normal = True) + [":server_lib"],
 )
 
 # Drives the real Router over HTTP, so it needs BOTH normal and dev deps.
@@ -45,11 +51,17 @@ rust_binary(
 # hand this target criterion and tower and nothing else.
 rust_test_suite(
     name = "integration_tests",
-    srcs = glob(["tests/*.rs"]),
-    shared_srcs = glob(["tests/common/**/*.rs"], allow_empty = True),
-    edition = "2024",
     size = "small",
-    deps = all_crate_deps(normal = True, normal_dev = True) + [":server_lib"],
+    srcs = glob(["tests/*.rs"]),
+    edition = "2024",
+    shared_srcs = glob(
+        ["tests/common/**/*.rs"],
+        allow_empty = True,
+    ),
+    deps = all_crate_deps(
+        normal = True,
+        normal_dev = True,
+    ) + [":server_lib"],
 )
 
 # rules_rust has no benchmark rule; a criterion bench is a rust_binary.
@@ -61,7 +73,10 @@ rust_binary(
     crate_root = "benches/fibonacci_benchmark.rs",
     edition = "2024",
     tags = ["manual"],
-    deps = all_crate_deps(normal = True, normal_dev = True) + [":server_lib"],
+    deps = all_crate_deps(
+        normal = True,
+        normal_dev = True,
+    ) + [":server_lib"],
 )
 
 rust_binary(
@@ -71,7 +86,10 @@ rust_binary(
     edition = "2024",
     # Cargo gives examples normal + dev dependencies; match that rather than
     # dev-only, which is what this target used to get.
-    deps = all_crate_deps(normal = True, normal_dev = True) + [":server_lib"],
+    deps = all_crate_deps(
+        normal = True,
+        normal_dev = True,
+    ) + [":server_lib"],
 )
 
 rust_binary(
@@ -79,10 +97,13 @@ rust_binary(
     # src/bin/proxy/ is cargo's convention for a multi-file binary. It does not
     # exist yet, and an empty glob is an error under
     # --incompatible_disallow_empty_glob, so it needs allow_empty.
-    srcs = ["src/bin/proxy.rs"] + glob(["src/bin/proxy/**/*.rs"], allow_empty = True),
+    srcs = ["src/bin/proxy.rs"] + glob(
+        ["src/bin/proxy/**/*.rs"],
+        allow_empty = True,
+    ),
     crate_root = "src/bin/proxy.rs",
     edition = "2024",
-    version = VERSION,
     rustc_env = {"CARGO_PKG_NAME": "proxy"},
+    version = VERSION,
     deps = all_crate_deps(normal = True) + [":server_lib"],
 )

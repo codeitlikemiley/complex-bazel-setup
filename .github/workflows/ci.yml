@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  # A CI push made with the default GITHUB_TOKEN cannot re-trigger workflows, so
+  # after the lockfile job regenerates MODULE.bazel.lock there is nothing to
+  # verify it until the next real push. This lets a maintainer re-run from the
+  # Actions tab instead of having to invent a commit.
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -101,6 +106,11 @@ jobs:
       # rustfmt + clippy as aspects over the whole graph, with -D warnings.
       - name: lint
         run: bazel build --config=ci ${{ steps.locked.outputs.flag }} --config=lint //...
+
+      # buildifier over the Starlark itself. `workspace = //:MODULE.bazel` makes
+      # it walk subpackages, so this covers every BUILD.bazel, not just the root.
+      - name: buildifier
+        run: bazel test --config=ci ${{ steps.locked.outputs.flag }} //:buildifier_test
 
   # MODULE.bazel.lock is a generated artifact that has to track MODULE.bazel, and
   # regenerating it needs network access to bcr.bazel.build. Rather than relying

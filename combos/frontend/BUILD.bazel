@@ -7,10 +7,10 @@ rust_binary(
     crate_name = "frontend",
     crate_root = "src/main.rs",
     edition = "2024",
-    version = "0.1.0",
-    rustc_env = {"CARGO_PKG_NAME": "frontend"},
-    deps = all_crate_deps(normal = True),
     proc_macro_deps = all_crate_deps(proc_macro = True),
+    rustc_env = {"CARGO_PKG_NAME": "frontend"},
+    version = "0.1.0",
+    deps = all_crate_deps(normal = True),
 )
 
 # No rust_test target: src/main.rs has nothing to assert yet. The previous one

@@ -1,17 +1,20 @@
 # MODULE.bazel
 # Bring in Rust rules
-bazel_dep(name = "rules_rust", version = "0.63.0")  # check for latest release
+bazel_dep(name = "rules_rust", version = "0.73.0")
+
+bazel_dep(name = "buildifier_prebuilt", version = "8.5.1.3", dev_dependency = True)
 
 ###############################################################################
 ## Rust toolchain
 ###############################################################################
 #
 # Without this block, `toolchains = root.tags.toolchain or rules_rust.tags.toolchain`
-# (rules_rust rust/extensions.bzl:93) falls back to rules_rust's OWN toolchain
-# tag, which is `rust.toolchain(edition = "2021")` at rules_rust MODULE.bazel:48
-# and DEFAULT_RUST_VERSION = "1.86.0" at rust/private/common.bzl:34. Every target
-# in this repo was being compiled as edition 2021 by rustc 1.86.0 while every
-# Cargo.toml said edition 2024 and contributors ran whatever rustup gave them.
+# (rules_rust rust/extensions.bzl:116 @0.73.0) falls back to rules_rust's OWN
+# toolchain tag, which is still `rust.toolchain(edition = "2021")` at its
+# MODULE.bazel:48. Every target here was compiled as edition 2021 while every
+# Cargo.toml said 2024, and by whatever DEFAULT_RUST_VERSION that rules_rust
+# release happened to carry -- 1.86.0 on 0.63.0, 1.97.1 on 0.73.0. Registering
+# our own is what stops a rules_rust bump from silently changing the compiler.
 #
 # `versions` MUST stay in sync with rust-toolchain.toml -- that file is the
 # cargo half of the same pin. If they drift, the two build systems are back to
@@ -21,39 +24,14 @@ rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
     edition = "2024",
     versions = ["1.94.1"],
-    # rules_rust 0.63.0 predates 1.94.1, so rust/known_shas.bzl has no entry for
-    # it. Without these, load_arbitrary_tool falls back to sha256 = "" and
-    # downloads the toolchain unverified (repository_utils.bzl:516-521).
-    # Regenerate on a version bump: python3 tools/pin_rust_toolchain.py <version>
-    sha256s = {
-        "cargo-1.94.1-aarch64-apple-darwin.tar.xz": "57f4e445695decbdff1e10abdebd6af2b129b9baac531e691862a2861b222d87",
-        "cargo-1.94.1-aarch64-unknown-linux-gnu.tar.xz": "69a99d7f0af6d9a86c89c1f991953e924d9910eb06847524e3833063338e3923",
-        "cargo-1.94.1-x86_64-apple-darwin.tar.xz": "f8278da462908960eee660d7a20f34649b95805e2b741a5c09cd94cdddd82687",
-        "cargo-1.94.1-x86_64-unknown-linux-gnu.tar.xz": "03595624775204f80ff3a67986f69c8918e4cd311877ced635108888013a1e39",
-        "clippy-1.94.1-aarch64-apple-darwin.tar.xz": "79e34e43a0a2a4dd8849a1424d0bc1e0e7a7fdfc1052e8c4ea05d5d05d5986ce",
-        "clippy-1.94.1-aarch64-unknown-linux-gnu.tar.xz": "d35ce7705052d5bf43203012d8dceafcf13ca01ab9727f24c079b2ad9da45428",
-        "clippy-1.94.1-x86_64-apple-darwin.tar.xz": "ff91e9a2e3bac8eee40d52fa6b8c0f6ad93ee868d6d29a9d2e39802bc5e839a9",
-        "clippy-1.94.1-x86_64-unknown-linux-gnu.tar.xz": "883a8116360741aca335e12cc02c201e027473861c807027df19bb82583a8603",
-        "llvm-tools-1.94.1-aarch64-apple-darwin.tar.xz": "91430b90398a15d9285c88459105765e2c9575e50f7aba4a144c5bd25fdbc211",
-        "llvm-tools-1.94.1-aarch64-unknown-linux-gnu.tar.xz": "a3620d27ddee0c1a51d113f9703030a1b7964dd56c1b6eb4708665b738b3cc9f",
-        "llvm-tools-1.94.1-x86_64-apple-darwin.tar.xz": "d7dfb07b18a823bd135254b5bef90d5310cec881860a29d5851ffdb0edb9ed7e",
-        "llvm-tools-1.94.1-x86_64-unknown-linux-gnu.tar.xz": "058274dede890491d156aa9fe7da397e56c88f9b564bc15455f540f420d2ef9e",
-        "rust-src-1.94.1.tar.xz": "cb3756156fe6d2d6cedad327c94ad3721b612c4cd20dfb226d7543250788b66c",
-        "rust-std-1.94.1-aarch64-apple-darwin.tar.xz": "36574c7d66ea7978224aa4b672b61e6fd9bef55083b1d0caea06201e6dcfa3e1",
-        "rust-std-1.94.1-aarch64-unknown-linux-gnu.tar.xz": "2be613d5525a4ce8b7e2a1a55beeb64198314507be0d2da5aea4fd166cdde21f",
-        "rust-std-1.94.1-wasm32-unknown-unknown.tar.xz": "26b8953083b942aeaf870de742962e4ba17c0da2095725fbf4ab5ab85a4d5fd5",
-        "rust-std-1.94.1-wasm32-wasip1.tar.xz": "3d5073709bca32de85852e52c24e85e93574af59ddcc7fc7c56132de6c07a3cf",
-        "rust-std-1.94.1-x86_64-apple-darwin.tar.xz": "15fea4fdba0496abdd5c0d14fcd5a964ad42c7783163429e798967248c0a2419",
-        "rust-std-1.94.1-x86_64-unknown-linux-gnu.tar.xz": "74109ee2c19098f1d7122087dd338a8f643203b3ce678c9d58169db733e17a03",
-        "rustc-1.94.1-aarch64-apple-darwin.tar.xz": "3ae26df6f8c83a13e4190469d124de49970432b6f4517a0762d9bfffdff5b89b",
-        "rustc-1.94.1-aarch64-unknown-linux-gnu.tar.xz": "fb4ff31b71d7a2b6a793fb88fac18429befe807ddab3472bf87cbf92b6e5fbf6",
-        "rustc-1.94.1-x86_64-apple-darwin.tar.xz": "813dcb7968ec0c851baa77e5f605f215c0ab975a7bd608c614749263a3c66a61",
-        "rustc-1.94.1-x86_64-unknown-linux-gnu.tar.xz": "0a6b16ca476461c6238f48efcb74a7aa08a3983e61adf587f208ba48504d87e1",
-        "rustfmt-1.94.1-aarch64-apple-darwin.tar.xz": "41f004a12cb8fb0aa8c6e479cc8735e1303a2f8a57b887c5f9de7fd22afa9173",
-        "rustfmt-1.94.1-aarch64-unknown-linux-gnu.tar.xz": "05faec7ab676e867efe613e59c686b1e33d906256f0cc37bb16658e4e31b0f07",
-        "rustfmt-1.94.1-x86_64-apple-darwin.tar.xz": "e6c27213c98c9a4a5a8b9d46097a9bbc334fd1bb43a11c3c4cb4b28c8d3ad04e",
-        "rustfmt-1.94.1-x86_64-unknown-linux-gnu.tar.xz": "eaff8c808a1b82261e235002fc86ad217cba194525364cfd8d3a4de21c179d0f",
-    },
+    # No sha256s block: rules_rust 0.73.0 ships hashes for 1.94.1 in
+    # rust/private/known_shas.bzl, and load_arbitrary_tool prefers an explicit
+    # sha256s entry but falls back to those. It is needed only when the pinned
+    # Rust version is NEWER than the rules_rust release knows about -- which was
+    # the case on 0.63.0, whose known_shas stopped well before 1.94.1 and which
+    # therefore downloaded the toolchain unverified. If you pin ahead of
+    # rules_rust again, regenerate one with
+    #     python3 tools/pin_rust_toolchain.py <version>
 )
 use_repo(rust, "rust_toolchains")
 
