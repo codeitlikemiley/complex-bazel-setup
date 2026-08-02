@@ -1,4 +1,4 @@
-bazel-*
+/bazel-*
 .bazelrc.user
 .bazelversion.user
 .cache/
