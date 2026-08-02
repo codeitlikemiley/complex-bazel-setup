@@ -47,6 +47,12 @@ and commits it for you. Two things are worth knowing:
   moment anyone builds against the real registry. Do not commit one; let CI
   produce it.
 
+One wrinkle worth knowing: a push made by CI with the default `GITHUB_TOKEN`
+does **not** re-trigger workflows. So the run that regenerates the lock is not
+the run that verifies it -- `--config=locked` validates the new lock on the
+*next* push. That is deliberate (it is also what stops the job looping), but it
+means a freshly regenerated lock is checked one run later than you might expect.
+
 Check whether yours is current:
 
 ```sh
