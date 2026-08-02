@@ -53,12 +53,19 @@ test:ci --flaky_test_attempts=1
 # run. Every test in this repo is currently MODERATE and finishes in ~0.1s;
 # they want size = "small". CI-only so local runs stay quiet.
 test:ci --test_verbose_timeout_warnings
-# Fail on a stale MODULE.bazel.lock instead of silently re-resolving.
-# Kept OUT of --config=ci so that config is usable today: this errors unless
-# MODULE.bazel.lock is committed, and the lock must be generated on a machine
-# that can reach the real bcr.bazel.build (one produced against a local file://
-# registry has an empty registryFileHashes and is treated as out of date).
-# Once the lock is committed, add --config=locked alongside --config=ci.
+# Fail on a stale MODULE.bazel.lock instead of silently re-resolving. CI applies
+# this on top of --config=ci once the lock exists; the `lockfile` job in
+# .github/workflows/ci.yml regenerates and commits it whenever it drifts.
+#
+# Kept as its own config rather than folded into --config=ci because it is a
+# hard error when the lock is missing, and because it is useful locally on its
+# own: `bazel build --config=locked //...` answers "is my lock current?"
+# without the rest of the CI flags.
+#
+# A lock generated against a local file:// registry mirror is NOT valid here --
+# Bazel records no registryFileHashes for those, so the real registry treats it
+# as out of date. It has to come from a machine (or a CI runner) that can reach
+# bcr.bazel.build.
 common:locked --lockfile_mode=error
 
 try-import %workspace%/.bazelrc.user
