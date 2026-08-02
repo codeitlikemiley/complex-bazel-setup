@@ -1,8 +1,4 @@
-# Cargo output directories. Bazel's package loader walks the whole tree, and a
-# plain `cargo build` in any of these subdirectories leaves tens of thousands of
-# files behind for it to crawl.
-corex/target
-server/target
-combos/target
-combos/backend/target
-combos/frontend/target
+# Cargo output directory. With a single workspace there is one target/ at the
+# root, no matter which member directory cargo is invoked from. Bazel's package
+# loader would otherwise crawl every file in it.
+target

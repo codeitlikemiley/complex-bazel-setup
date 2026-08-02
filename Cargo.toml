@@ -1,0 +1,25 @@
+# Single workspace for the whole repo.
+#
+# This replaces three independent Cargo workspaces (corex/, server/, combos/)
+# and their three lockfiles. Those produced three separate crate_universe repos,
+# which meant //server:server_bin linked TWO distinct serde rlibs -- rules_rust
+# emits a per-target codegen metadata id, so two Bazel targets built from the
+# same source can never unify. Any `corex` type crossing into `server` hit
+# E0277 "the trait bound `User: Serialize` is not satisfied ... multiple
+# different versions of crate `serde`".
+#
+# One workspace -> one Cargo.lock -> one `crate.from_cargo` -> one serde.
+[workspace]
+resolver = "3"
+members = [
+    "corex",
+    "server",
+    "combos/backend",
+    "combos/frontend",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+# Keep in sync with rust-toolchain.toml and rust.toolchain() in MODULE.bazel.
+rust-version = "1.94"
