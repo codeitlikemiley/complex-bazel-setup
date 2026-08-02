@@ -1,101 +1,17 @@
-// Criterion benchmarks for four fibonacci implementations.
+// Criterion benchmarks for the four fibonacci implementations in the server
+// library. The algorithms and their correctness tests live in src/lib.rs --
+// `harness = false` means cargo compiles #[test] functions here and then never
+// runs them, so assertions in a bench file are invisible to `cargo test`.
 //
 // Declared in Cargo.toml as `[[bench]] name = "fibonacci_benchmark", harness = false`.
-// Under Bazel this is //server:bench, tagged "manual" so criterion's ~30 transitive
-// crates stay out of `bazel build //...`. Run it with:
+// Under Bazel this is //server:bench, tagged "manual". Run it with:
 //     cargo bench
 //     bazel run -c opt //server:bench -- --bench
 
 use std::hint::black_box;
 
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-
-// Recursive Fibonacci (inefficient)
-fn fib_recursive(n: u32) -> u64 {
-    match n {
-        0 => 0,
-        1 => 1,
-        _ => fib_recursive(n - 1) + fib_recursive(n - 2),
-    }
-}
-
-// Iterative Fibonacci (efficient)
-fn fib_iterative(n: u32) -> u64 {
-    match n {
-        0 => 0,
-        1 => 1,
-        _ => {
-            let mut a = 0u64;
-            let mut b = 1u64;
-            for _ in 2..=n {
-                let temp = a + b;
-                a = b;
-                b = temp;
-            }
-            b
-        }
-    }
-}
-
-// Memoized Fibonacci
-fn fib_memoized(n: u32) -> u64 {
-    fn fib_memo_helper(n: u32, memo: &mut Vec<Option<u64>>) -> u64 {
-        if let Some(result) = memo[n as usize] {
-            return result;
-        }
-
-        let result = match n {
-            0 => 0,
-            1 => 1,
-            _ => fib_memo_helper(n - 1, memo) + fib_memo_helper(n - 2, memo),
-        };
-
-        memo[n as usize] = Some(result);
-        result
-    }
-
-    let mut memo = vec![None; (n + 1) as usize];
-    fib_memo_helper(n, &mut memo)
-}
-
-// Matrix multiplication Fibonacci (O(log n))
-fn fib_matrix(n: u32) -> u64 {
-    if n == 0 {
-        return 0;
-    }
-
-    fn matrix_mult(a: [[u64; 2]; 2], b: [[u64; 2]; 2]) -> [[u64; 2]; 2] {
-        [
-            [
-                a[0][0] * b[0][0] + a[0][1] * b[1][0],
-                a[0][0] * b[0][1] + a[0][1] * b[1][1],
-            ],
-            [
-                a[1][0] * b[0][0] + a[1][1] * b[1][0],
-                a[1][0] * b[0][1] + a[1][1] * b[1][1],
-            ],
-        ]
-    }
-
-    fn matrix_pow(m: [[u64; 2]; 2], n: u32) -> [[u64; 2]; 2] {
-        if n == 1 {
-            return m;
-        }
-
-        let half = matrix_pow(m, n / 2);
-        let half_squared = matrix_mult(half, half);
-
-        if n.is_multiple_of(2) {
-            half_squared
-        } else {
-            matrix_mult(half_squared, m)
-        }
-    }
-
-    let base = [[1, 1], [1, 0]];
-    let result = matrix_pow(base, n);
-    result[0][1]
-}
+use server::{fib_iterative, fib_matrix, fib_memoized, fib_recursive};
 
 fn benchmark_recursive(c: &mut Criterion) {
     let mut group = c.benchmark_group("fibonacci_recursive");
@@ -178,49 +94,3 @@ criterion_group!(
     benchmark_comparison
 );
 criterion_main!(benches);
-
-// NOTE: `harness = false` means cargo compiles this file with --cfg test but
-// WITHOUT --test, so rustc strips the #[test] functions and never runs them --
-// only `bazel test //server:bench_test` does. The imports live inside each test
-// rather than at module scope so they disappear with the functions instead of
-// becoming unused. These assertions move to a real library target with the
-// server lib/bin split.
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_fibonacci_correctness() {
-        use super::*;
-
-        let expected = vec![0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55];
-
-        for (i, &expected_val) in expected.iter().enumerate() {
-            let n = i as u32;
-            assert_eq!(
-                fib_recursive(n),
-                expected_val,
-                "recursive failed for n={}",
-                n
-            );
-            assert_eq!(
-                fib_iterative(n),
-                expected_val,
-                "iterative failed for n={}",
-                n
-            );
-            assert_eq!(fib_memoized(n), expected_val, "memoized failed for n={}", n);
-            assert_eq!(fib_matrix(n), expected_val, "matrix failed for n={}", n);
-        }
-    }
-
-    #[test]
-    fn test_large_values() {
-        use super::*;
-
-        // Test that all implementations give same results
-        for n in 20..=40 {
-            let iterative_result = fib_iterative(n);
-            assert_eq!(fib_memoized(n), iterative_result);
-            assert_eq!(fib_matrix(n), iterative_result);
-        }
-    }
-}

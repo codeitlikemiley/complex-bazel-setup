@@ -1,22 +1,45 @@
 load("@crates//:defs.bzl", "all_crate_deps")
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test", "rust_test_suite")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+
+# Everything testable lives in the library; the binary is a thin wrapper.
+# srcs is a glob so the first `mod foo;` does not break Bazel while leaving
+# cargo happy -- every target in this repo used to hardcode a single file.
+rust_library(
+    name = "server_lib",
+    srcs = glob(["src/**/*.rs"], exclude = ["src/main.rs", "src/bin/**"]),
+    crate_name = "server",
+    crate_root = "src/lib.rs",
+    edition = "2024",
+    deps = all_crate_deps(normal = True) + ["//corex:corex_lib"],
+    visibility = ["//visibility:public"],
+)
+
+rust_test(
+    name = "server_lib_test",
+    crate = ":server_lib",
+    deps = all_crate_deps(normal_dev = True),
+    size = "small",
+)
 
 rust_binary(
     name = "server_bin",
     srcs = ["src/main.rs"],
-    deps = all_crate_deps(normal = True) + [
-        "//corex:corex_lib",
-    ],
     crate_root = "src/main.rs",
     edition = "2024",
+    deps = all_crate_deps(normal = True) + [":server_lib"],
 )
 
-rust_test(
-    name = "tests",
-    crate = ":server_bin",
-    deps = all_crate_deps(normal_dev = True),
+# Drives the real Router over HTTP, so it needs BOTH normal and dev deps.
+# all_crate_deps(normal_dev = True) alone is exclusive -- it would hand this
+# target criterion and tower and nothing else.
+rust_test_suite(
+    name = "integration_tests",
+    srcs = glob(["tests/*.rs"]),
+    shared_srcs = glob(["tests/common/**/*.rs"], allow_empty = True),
+    edition = "2024",
     size = "small",
+    deps = all_crate_deps(normal = True, normal_dev = True) + [":server_lib"],
 )
 
 cargo_build_script(
@@ -28,18 +51,12 @@ cargo_build_script(
 rust_binary(
     name = "bench",
     srcs = ["benches/fibonacci_benchmark.rs"],
-    deps = all_crate_deps(normal_dev = True),
+    deps = all_crate_deps(normal = True, normal_dev = True) + [":server_lib"],
     crate_root = "benches/fibonacci_benchmark.rs",
     edition = "2024",
     # Keeps criterion's ~30 transitive crates out of `bazel build //...`.
     # Run explicitly: bazel run -c opt //server:bench -- --bench
     tags = ["manual"],
-)
-
-rust_test(
-    name = "bench_test",
-    crate = ":bench",
-    size = "small",
 )
 
 rust_binary(
