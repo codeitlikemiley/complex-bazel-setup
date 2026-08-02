@@ -16,6 +16,7 @@ rust_test(
     name = "tests",
     crate = ":server_bin",
     deps = all_crate_deps(normal_dev = True),
+    size = "small",
 )
 
 cargo_build_script(
@@ -38,6 +39,7 @@ rust_binary(
 rust_test(
     name = "bench_test",
     crate = ":bench",
+    size = "small",
 )
 
 rust_binary(

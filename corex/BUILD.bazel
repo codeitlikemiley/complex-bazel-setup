@@ -14,11 +14,13 @@ rust_test(
     name = "corex_tests",
     crate = ":corex_lib",
     deps = all_crate_deps(normal_dev = True),
+    size = "small",
 )
 
 rust_doc_test(
     name = "corex_doc_test",
     crate = ":corex_lib",
     deps = all_crate_deps(normal_dev = True),
+    size = "small",
 )
 
