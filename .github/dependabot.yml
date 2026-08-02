@@ -1,0 +1,28 @@
+version: 2
+updates:
+  # One Cargo workspace at the root, so one entry covers all four crates.
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Patch/minor churn as one PR; majors stay separate so they get read.
+      minor-and-patch:
+        update-types: [minor, patch]
+    # A Cargo.lock bump changes the crate_universe resolution, and MODULE.bazel.lock
+    # with it. The `lockfile` CI job regenerates and commits that automatically,
+    # so no manual repin step is needed -- but expect a follow-up bot commit.
+    commit-message:
+      prefix: "deps"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+
+  # Keeps bazel_dep versions in MODULE.bazel current.
+  - package-ecosystem: bazel-modules
+    directory: /
+    schedule:
+      interval: monthly

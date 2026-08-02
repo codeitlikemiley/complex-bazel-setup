@@ -1,63 +1,88 @@
 load("@crates//:defs.bzl", "all_crate_deps")
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
-load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test", "rust_test_suite")
+
+VERSION = "0.1.0"
+
+# Everything testable lives in the library; the binary is a thin wrapper.
+rust_library(
+    name = "server_lib",
+    srcs = glob(["src/**/*.rs"], exclude = ["src/main.rs", "src/bin/**"]),
+    crate_name = "server",
+    crate_root = "src/lib.rs",
+    edition = "2024",
+    version = VERSION,
+    rustc_env = {"CARGO_PKG_NAME": "server"},
+    deps = all_crate_deps(normal = True) + ["//corex:corex_lib"],
+    proc_macro_deps = all_crate_deps(proc_macro = True),
+    visibility = ["//visibility:public"],
+)
+
+# `deps` is deliberately absent: a rust_test with `crate` set unions its deps
+# with the parent crate's, so listing them again only adds. It used to attach
+# criterion plus ~30 transitive crates to targets that never referenced them.
+rust_test(
+    name = "server_lib_test",
+    crate = ":server_lib",
+    size = "small",
+    version = VERSION,
+    rustc_env = {"CARGO_PKG_NAME": "server"},
+)
 
 rust_binary(
     name = "server_bin",
     srcs = ["src/main.rs"],
-    deps = all_crate_deps(normal = True) + [
-        "//corex:corex_lib",
-    ],
+    crate_name = "server",
     crate_root = "src/main.rs",
     edition = "2024",
+    version = VERSION,
+    rustc_env = {"CARGO_PKG_NAME": "server"},
+    deps = all_crate_deps(normal = True) + [":server_lib"],
+    visibility = ["//visibility:public"],
 )
 
-rust_test(
-    name = "tests",
-    crate = ":server_bin",
-    deps = all_crate_deps(normal_dev = True),
-    size = "small",
-)
-
-cargo_build_script(
-    name = "build_script",
-    srcs = ["build.rs"],
+# Drives the real Router over HTTP, so it needs BOTH normal and dev deps.
+# all_crate_deps(normal_dev = True) alone is exclusive, not additive: it would
+# hand this target criterion and tower and nothing else.
+rust_test_suite(
+    name = "integration_tests",
+    srcs = glob(["tests/*.rs"]),
+    shared_srcs = glob(["tests/common/**/*.rs"], allow_empty = True),
     edition = "2024",
+    size = "small",
+    deps = all_crate_deps(normal = True, normal_dev = True) + [":server_lib"],
 )
 
+# rules_rust has no benchmark rule; a criterion bench is a rust_binary.
+# Tagged manual so criterion's ~30 transitive crates stay out of
+# `bazel build //...`. Run it with: bazel run -c opt //server:bench -- --bench
 rust_binary(
     name = "bench",
     srcs = ["benches/fibonacci_benchmark.rs"],
-    deps = all_crate_deps(normal_dev = True),
     crate_root = "benches/fibonacci_benchmark.rs",
     edition = "2024",
-    # Keeps criterion's ~30 transitive crates out of `bazel build //...`.
-    # Run explicitly: bazel run -c opt //server:bench -- --bench
     tags = ["manual"],
-)
-
-rust_test(
-    name = "bench_test",
-    crate = ":bench",
-    size = "small",
+    deps = all_crate_deps(normal = True, normal_dev = True) + [":server_lib"],
 )
 
 rust_binary(
     name = "axum_example",
     srcs = ["examples/axum.rs"],
-    deps = all_crate_deps(normal_dev = True) + [
-        "//corex:corex_lib",  # include if needed
-    ],
     crate_root = "examples/axum.rs",
     edition = "2024",
+    # Cargo gives examples normal + dev dependencies; match that rather than
+    # dev-only, which is what this target used to get.
+    deps = all_crate_deps(normal = True, normal_dev = True) + [":server_lib"],
 )
 
 rust_binary(
     name = "proxy",
-    srcs = ["src/bin/proxy.rs"],
-    deps = all_crate_deps(normal = True) + [
-        "//corex:corex_lib",  # include if proxy depends on corex
-    ],
+    # src/bin/proxy/ is cargo's convention for a multi-file binary. It does not
+    # exist yet, and an empty glob is an error under
+    # --incompatible_disallow_empty_glob, so it needs allow_empty.
+    srcs = ["src/bin/proxy.rs"] + glob(["src/bin/proxy/**/*.rs"], allow_empty = True),
     crate_root = "src/bin/proxy.rs",
     edition = "2024",
+    version = VERSION,
+    rustc_env = {"CARGO_PKG_NAME": "proxy"},
+    deps = all_crate_deps(normal = True) + [":server_lib"],
 )

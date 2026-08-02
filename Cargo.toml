@@ -23,3 +23,7 @@ version = "0.1.0"
 edition = "2024"
 # Keep in sync with rust-toolchain.toml and rust.toolchain() in MODULE.bazel.
 rust-version = "1.94"
+# Nothing here is published to crates.io. This also lets cargo-deny treat these
+# crates as private and skip the license check they would otherwise fail, since
+# none of them declares a license.
+publish = false

@@ -3,6 +3,11 @@ name = "server"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+name = "server"
+path = "src/lib.rs"
 
 [dependencies]
 corex = { path = "../corex" }
@@ -12,6 +17,8 @@ tokio = { version = "1.47.1", features = ["full"] }
 
 [dev-dependencies]
 criterion = { version = "0.7", features = ["html_reports"] }
+# Drives the Router in tests/ via ServiceExt::oneshot; axum already pulls tower in.
+tower = { version = "0.5", features = ["util"] }
 
 [[bench]]
 name = "fibonacci_benchmark"

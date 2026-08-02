@@ -3,10 +3,15 @@ load("@rules_rust//rust:defs.bzl", "rust_binary")
 
 rust_binary(
     name = "backend_bin",
-    srcs = ["src/main.rs"],
-    deps = all_crate_deps(normal = True),
+    srcs = glob(["src/**/*.rs"]),
+    crate_name = "backend",
+    crate_root = "src/main.rs",
     edition = "2024",
+    version = "0.1.0",
+    rustc_env = {"CARGO_PKG_NAME": "backend"},
+    deps = all_crate_deps(normal = True),
+    proc_macro_deps = all_crate_deps(proc_macro = True),
 )
 
-# No rust_test target: src/main.rs has no tests at all, so the previous
-# backend_tests wrapped an empty binary and reported "0 tests ... ok" forever.
+# No rust_test target: src/main.rs has nothing to assert yet. The previous one
+# wrapped vacuous tests and reported PASSED regardless of the code.
