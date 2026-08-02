@@ -28,7 +28,7 @@ jobs:
     name: cargo
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # rustup reads rust-toolchain.toml, which pins the same version as
       # rust.toolchain() in MODULE.bazel and lists rustfmt + clippy.
@@ -67,7 +67,7 @@ jobs:
     name: bazel
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # bazelisk ships on the GitHub ubuntu runners and honours .bazelversion.
       - name: Show Bazel version
@@ -125,7 +125,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Check out the branch itself rather than the detached PR merge commit,
           # so the push below has a branch to land on.
@@ -164,7 +164,7 @@ jobs:
     name: cargo-deny
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check
