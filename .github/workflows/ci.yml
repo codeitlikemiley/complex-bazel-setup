@@ -85,3 +85,14 @@ jobs:
       # rustfmt + clippy as aspects over the whole graph, with -D warnings.
       - name: lint
         run: bazel build --config=ci --config=lint //...
+
+  # Supply chain: licenses, RustSec advisories, banned/duplicate crates, and
+  # that every source is the real crates.io registry.
+  supply-chain:
+    name: cargo-deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check

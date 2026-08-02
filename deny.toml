@@ -1,0 +1,41 @@
+# cargo-deny configuration. Run with: cargo deny check
+#
+# The allow-list below is not aspirational -- it is the exact set of licenses
+# present in this repo's dependency graph today, taken from `cargo metadata`.
+# Anything new has to be added deliberately.
+
+[graph]
+all-features = true
+
+[licenses]
+version = 2
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "Unicode-3.0",
+    "Unlicense",
+]
+# The four workspace crates declare no license because they are publish = false.
+# Without this, `cargo deny check licenses` reports them as unlicensed.
+private = { ignore = true }
+confidence-threshold = 0.9
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+# `corex = { path = "../corex" }` has no version requirement, which the wildcard
+# ban flags. Intra-workspace path deps are exactly what we want, so allow them.
+allow-wildcard-paths = true
+
+[advisories]
+version = 2
+yanked = "deny"
+ignore = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
