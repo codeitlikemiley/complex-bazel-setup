@@ -1,15 +1,14 @@
-// Cargo.toml dependencies:
-// [dependencies]
-// criterion = { version = "0.5", features = ["html_reports"] }
+// Criterion benchmarks for four fibonacci implementations.
 //
-// [[bench]]
-// name = "fibonacci_benchmark"
-// harness = false
-// +nightly -Z unstable-options --frozen --quiet --release --timings=html RUST_LOG=debug %nextest %force RUST_BACKTRACE=full / --nocapture
+// Declared in Cargo.toml as `[[bench]] name = "fibonacci_benchmark", harness = false`.
+// Under Bazel this is //server:bench, tagged "manual" so criterion's ~30 transitive
+// crates stay out of `bazel build //...`. Run it with:
+//     cargo bench
+//     bazel run -c opt //server:bench -- --bench
 
 use std::hint::black_box;
 
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 
 // Recursive Fibonacci (inefficient)
 fn fib_recursive(n: u32) -> u64 {
@@ -86,7 +85,7 @@ fn fib_matrix(n: u32) -> u64 {
         let half = matrix_pow(m, n / 2);
         let half_squared = matrix_mult(half, half);
 
-        if n % 2 == 0 {
+        if n.is_multiple_of(2) {
             half_squared
         } else {
             matrix_mult(half_squared, m)
@@ -113,7 +112,7 @@ fn benchmark_recursive(c: &mut Criterion) {
 fn benchmark_iterative(c: &mut Criterion) {
     let mut group = c.benchmark_group("fibonacci_iterative");
 
-    for n in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].iter() {
+    for n in [10, 20, 30, 40, 50, 60, 70, 80, 90].iter() {
         group.bench_with_input(BenchmarkId::from_parameter(n), n, |b, &n| {
             b.iter(|| fib_iterative(black_box(n)));
         });
@@ -125,7 +124,7 @@ fn benchmark_iterative(c: &mut Criterion) {
 fn benchmark_memoized(c: &mut Criterion) {
     let mut group = c.benchmark_group("fibonacci_memoized");
 
-    for n in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].iter() {
+    for n in [10, 20, 30, 40, 50, 60, 70, 80, 90].iter() {
         group.bench_with_input(BenchmarkId::from_parameter(n), n, |b, &n| {
             b.iter(|| fib_memoized(black_box(n)));
         });
@@ -137,7 +136,7 @@ fn benchmark_memoized(c: &mut Criterion) {
 fn benchmark_matrix(c: &mut Criterion) {
     let mut group = c.benchmark_group("fibonacci_matrix");
 
-    for n in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].iter() {
+    for n in [10, 20, 30, 40, 50, 60, 70, 80, 90].iter() {
         group.bench_with_input(BenchmarkId::from_parameter(n), n, |b, &n| {
             b.iter(|| fib_matrix(black_box(n)));
         });
@@ -180,12 +179,18 @@ criterion_group!(
 );
 criterion_main!(benches);
 
-// In src/lib.rs or src/main.rs for unit tests:
+// NOTE: `harness = false` means cargo compiles this file with --cfg test but
+// WITHOUT --test, so rustc strips the #[test] functions and never runs them --
+// only `bazel test //server:bench_test` does. The imports live inside each test
+// rather than at module scope so they disappear with the functions instead of
+// becoming unused. These assertions move to a real library target with the
+// server lib/bin split.
 #[cfg(test)]
 mod tests {
-    use super::*;
     #[test]
     fn test_fibonacci_correctness() {
+        use super::*;
+
         let expected = vec![0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55];
 
         for (i, &expected_val) in expected.iter().enumerate() {
@@ -209,6 +214,8 @@ mod tests {
 
     #[test]
     fn test_large_values() {
+        use super::*;
+
         // Test that all implementations give same results
         for n in 20..=40 {
             let iterative_result = fib_iterative(n);

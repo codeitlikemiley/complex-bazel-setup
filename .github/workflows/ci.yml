@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # This repo is dual-buildable, so both build systems are gated. There is no
+  # root Cargo.toml -- corex/, server/ and combos/ are three separate Cargo
+  # workspaces -- so cargo runs once per directory.
+  cargo:
+    name: cargo (${{ matrix.dir }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: [corex, server, combos]
+    defaults:
+      run:
+        working-directory: ${{ matrix.dir }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # rustup reads rust-toolchain.toml, which pins the same version as
+      # rust.toolchain() in MODULE.bazel and lists rustfmt + clippy.
+      - name: Show toolchain
+        run: rustc --version && cargo --version && cargo clippy --version
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            ${{ matrix.dir }}/target
+          key: cargo-${{ runner.os }}-${{ matrix.dir }}-${{ hashFiles(format('{0}/Cargo.lock', matrix.dir)) }}
+          restore-keys: cargo-${{ runner.os }}-${{ matrix.dir }}-
+
+      - name: rustfmt
+        run: cargo fmt --all -- --check
+
+      - name: clippy
+        run: cargo clippy --all-targets --workspace --locked -- -D warnings
+
+      - name: build
+        run: cargo build --all-targets --locked
+
+      - name: test
+        run: cargo test --all-targets --locked
+
+      # Only corex has a [lib] today, and `cargo test --doc` hard-errors with
+      # "no library targets found" in the other two. Skip where there is none
+      # rather than letting the matrix be permanently red in 2 of 3 cells.
+      - name: doc tests
+        run: |
+          if cargo metadata --no-deps --format-version=1 \
+             | jq -e '[.packages[].targets[] | select(.kind[] == "lib")] | length > 0' >/dev/null; then
+            cargo test --doc --locked
+          else
+            echo "no lib target in ${{ matrix.dir }}; skipping doc tests"
+          fi
+
+  bazel:
+    name: bazel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # bazelisk ships on the GitHub ubuntu runners and honours .bazelversion.
+      - name: Show Bazel version
+        run: bazel --version
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/bazel-disk
+            ~/.cache/bazel-repo
+          key: bazel-${{ runner.os }}-${{ hashFiles('.bazelversion', 'MODULE.bazel', '**/Cargo.lock') }}
+          restore-keys: bazel-${{ runner.os }}-
+
+      - name: build
+        run: bazel build --config=ci //...
+
+      - name: test
+        run: bazel test --config=ci //...
+
+      # rustfmt + clippy as aspects over the whole graph, with -D warnings.
+      - name: lint
+        run: bazel build --config=ci --config=lint //...

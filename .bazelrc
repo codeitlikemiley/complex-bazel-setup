@@ -30,6 +30,16 @@ build --repository_cache=~/.cache/bazel-repo
 test --test_output=errors
 test --build_tests_only
 
+# ---------- lint ----------
+# `bazel build --config=lint //...` runs rustfmt and clippy as aspects over the
+# whole graph. Deferred in the toolchain-pinning change because clippy.toml and
+# rustfmt.toml did not exist yet and the root package exported nothing.
+build:lint --aspects=@rules_rust//rust:defs.bzl%rustfmt_aspect,@rules_rust//rust:defs.bzl%rust_clippy_aspect
+build:lint --output_groups=+rustfmt_checks,+clippy_checks
+build:lint --@rules_rust//rust/settings:clippy_flags=-Dwarnings
+build:lint --@rules_rust//rust/settings:clippy.toml=//:clippy.toml
+build:lint --@rules_rust//rust/settings:rustfmt.toml=//:rustfmt.toml
+
 # ---------- coverage ----------
 # rules_rust ships llvm-tools with every toolchain >= 1.45.0 (repositories.bzl),
 # so `bazel coverage //...` needs nothing beyond the pinned toolchain.
@@ -38,17 +48,17 @@ coverage --instrumentation_filter=^//corex[:/],^//server[:/],^//combos[:/]
 
 # ---------- CI ----------
 build:ci --announce_rc --verbose_failures --keep_going
-build:ci --disk_cache=/tmp/bazel-disk
 test:ci --flaky_test_attempts=1
 # Surfaces targets whose declared size does not match how long they actually
 # run. Every test in this repo is currently MODERATE and finishes in ~0.1s;
 # they want size = "small". CI-only so local runs stay quiet.
 test:ci --test_verbose_timeout_warnings
 # Fail on a stale MODULE.bazel.lock instead of silently re-resolving.
-# PREREQUISITE: MODULE.bazel.lock must be committed first, and it must be
-# generated on a machine that can reach the real bcr.bazel.build -- a lock
-# produced against a local file:// registry has an empty registryFileHashes and
-# will be treated as out of date here.
-common:ci --lockfile_mode=error
+# Kept OUT of --config=ci so that config is usable today: this errors unless
+# MODULE.bazel.lock is committed, and the lock must be generated on a machine
+# that can reach the real bcr.bazel.build (one produced against a local file://
+# registry has an empty registryFileHashes and is treated as out of date).
+# Once the lock is committed, add --config=locked alongside --config=ci.
+common:locked --lockfile_mode=error
 
 try-import %workspace%/.bazelrc.user
