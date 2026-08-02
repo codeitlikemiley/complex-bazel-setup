@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  # A CI push made with the default GITHUB_TOKEN cannot re-trigger workflows, so
+  # after the lockfile job regenerates MODULE.bazel.lock there is nothing to
+  # verify it until the next real push. This lets a maintainer re-run from the
+  # Actions tab instead of having to invent a commit.
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
