@@ -53,6 +53,20 @@ the run that verifies it -- `--config=locked` validates the new lock on the
 *next* push. That is deliberate (it is also what stops the job looping), but it
 means a freshly regenerated lock is checked one run later than you might expect.
 
+In practice that shows up like this: **the first CI run on a PR that changes
+`Cargo.toml` or `Cargo.lock` will have a red `bazel` job**, reporting
+
+```
+ERROR: MODULE.bazel.lock is no longer up-to-date because: One or more files the
+extension '@@rules_rust+//crate_universe:extensions.bzl%crate' is using have changed.
+```
+
+That is the drift check working, not a broken build. The `lockfile` job in the
+same run has already regenerated the lock and pushed it; the next push to the
+branch goes green. This is deliberately left as a visible failure rather than
+folded into the bazel job: if the lock were silently regenerated before every
+build, `--lockfile_mode=error` would never actually catch anything.
+
 Check whether yours is current:
 
 ```sh
