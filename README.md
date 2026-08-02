@@ -119,13 +119,19 @@ root module registers none.
 To bump:
 
 ```sh
-python3 tools/pin_rust_toolchain.py 1.95.0   # prints the sha256s block
-# paste into MODULE.bazel, set the same version in rust-toolchain.toml
+# set the version in BOTH MODULE.bazel and rust-toolchain.toml, then:
+bazel build //...
+# only if you pinned ahead of what rules_rust ships hashes for:
+python3 tools/pin_rust_toolchain.py 1.95.0   # prints a sha256s block to paste
 ```
 
-The `sha256s` block matters: `rules_rust` only ships built-in hashes for Rust
-versions that existed when it was released, and without them it downloads the
-toolchain **unverified**.
+No `sha256s` block is needed while the pinned Rust version is one `rules_rust`
+already knows -- it ships hashes in `rust/private/known_shas.bzl`. It becomes
+necessary the moment you pin *ahead* of `rules_rust`, because
+`load_arbitrary_tool` then falls back to `sha256 = ""` and downloads the
+toolchain **unverified**. That was the situation on rules_rust 0.63.0, whose
+hashes stopped well before 1.94.1. `tools/pin_rust_toolchain.py` generates the
+block for that case.
 
 ### 2. First-party dependencies go in *both* files
 

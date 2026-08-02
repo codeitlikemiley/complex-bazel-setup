@@ -102,6 +102,11 @@ jobs:
       - name: lint
         run: bazel build --config=ci ${{ steps.locked.outputs.flag }} --config=lint //...
 
+      # buildifier over the Starlark itself. `workspace = //:MODULE.bazel` makes
+      # it walk subpackages, so this covers every BUILD.bazel, not just the root.
+      - name: buildifier
+        run: bazel test --config=ci ${{ steps.locked.outputs.flag }} //:buildifier_test
+
   # MODULE.bazel.lock is a generated artifact that has to track MODULE.bazel, and
   # regenerating it needs network access to bcr.bazel.build. Rather than relying
   # on every contributor to remember, CI owns it: this job regenerates the lock

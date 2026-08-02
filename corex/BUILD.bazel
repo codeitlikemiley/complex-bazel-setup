@@ -10,15 +10,15 @@ rust_library(
     srcs = glob(["src/**/*.rs"]),
     crate_name = "corex",
     edition = "2024",
-    # Without these, rules_rust bakes CARGO_PKG_NAME = the TARGET name
-    # ("corex_lib") and CARGO_PKG_VERSION = "0.0.0" into the crate, so anything
-    # reporting its own version -- /version handlers, telemetry, User-Agent --
-    # disagrees with cargo.
-    version = VERSION,
-    rustc_env = {"CARGO_PKG_NAME": "corex"},
-    deps = all_crate_deps(normal = True),
     proc_macro_deps = all_crate_deps(proc_macro = True),
+    # rustc_env + version: without them rules_rust bakes CARGO_PKG_NAME = the
+    # TARGET name ("corex_lib") and CARGO_PKG_VERSION = "0.0.0" into the crate,
+    # so anything reporting its own version -- /version handlers, telemetry,
+    # User-Agent -- disagrees with cargo.
+    rustc_env = {"CARGO_PKG_NAME": "corex"},
+    version = VERSION,
     visibility = ["//visibility:public"],
+    deps = all_crate_deps(normal = True),
 )
 
 # No `deps` on a test that sets `crate`: rules_rust unions the rule's deps with
@@ -27,14 +27,14 @@ rust_library(
 # [dev-dependencies] at all, so it was a no-op copied from the guide.
 rust_test(
     name = "corex_tests",
-    crate = ":corex_lib",
     size = "small",
-    version = VERSION,
+    crate = ":corex_lib",
     rustc_env = {"CARGO_PKG_NAME": "corex"},
+    version = VERSION,
 )
 
 rust_doc_test(
     name = "corex_doc_test",
-    crate = ":corex_lib",
     size = "small",
+    crate = ":corex_lib",
 )
