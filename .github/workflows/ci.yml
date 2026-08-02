@@ -35,7 +35,7 @@ jobs:
       - name: Show toolchain
         run: rustc --version && cargo --version && cargo clippy --version
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry/index
@@ -73,7 +73,7 @@ jobs:
       - name: Show Bazel version
         run: bazel --version
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cache/bazel-disk
@@ -131,7 +131,7 @@ jobs:
           # so the push below has a branch to land on.
           ref: ${{ github.head_ref || github.ref_name }}
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cache/bazel-disk
