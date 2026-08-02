@@ -1,0 +1,10 @@
+# The cargo half of the toolchain pin. The Bazel half is `rust.toolchain(...)`
+# in MODULE.bazel. Both must name the SAME version -- if they drift, `cargo
+# build` and `bazel build` compile this repo with different compilers again.
+#
+# Bumping: change `channel` here and `versions` in MODULE.bazel, then
+# regenerate the integrity hashes with
+#     python3 tools/pin_rust_toolchain.py <version>
+[toolchain]
+channel = "1.94.1"
+components = ["rustfmt", "clippy", "rust-src", "rust-analyzer"]

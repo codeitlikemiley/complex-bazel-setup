@@ -5,6 +5,7 @@ rust_binary(
     name = "backend_bin",
     srcs = ["src/main.rs"],
     deps = all_crate_deps(normal = True),
+    edition = "2024",
 )
 
 rust_test(
