@@ -69,33 +69,25 @@ crate = use_extension(
     "crate",
 )
 
-# combos workspace
+# ONE repo for the whole workspace. Previously this was three -- combos_crates,
+# corex_crates and server_crates -- which duplicated six crates (serde,
+# serde_derive, syn, quote, proc-macro2, unicode-ident) and let the three
+# lockfiles drift apart unnoticed (proc-macro2 was already 1.0.96 vs 1.0.97 and
+# syn 2.0.104 vs 2.0.105). More importantly it meant server_bin linked two
+# distinct serde rlibs, so no corex type could cross into server.
+#
+# Note: all_crate_deps() never emits workspace members -- cargo-bazel's
+# deps_map template skips them explicitly -- so first-party edges such as
+# //corex:corex_lib stay as hand-written Bazel labels in the BUILD files.
 crate.from_cargo(
-    name = "combos_crates",
+    name = "crates",
+    cargo_lockfile = "//:Cargo.lock",
     manifests = [
-        "//combos:Cargo.toml",
+        "//:Cargo.toml",
+        "//corex:Cargo.toml",
+        "//server:Cargo.toml",
         "//combos/backend:Cargo.toml",
         "//combos/frontend:Cargo.toml",
     ],
-    cargo_lockfile = "//combos:Cargo.lock",
 )
-
-# corex single crate
-crate.from_cargo(
-    name = "corex_crates",
-    manifests = ["//corex:Cargo.toml"],
-    cargo_lockfile = "//corex:Cargo.lock",
-)
-
-# server single crate
-crate.from_cargo(
-    name = "server_crates",
-    manifests = ["//server:Cargo.toml"],
-    cargo_lockfile = "//server:Cargo.lock",
-)
-
-# Make repos available in BUILD files
-use_repo(crate, "combos_crates")
-use_repo(crate, "corex_crates")
-use_repo(crate, "server_crates")
-
+use_repo(crate, "crates")

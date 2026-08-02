@@ -45,12 +45,21 @@ bazel run @rules_rust//tools/rust_analyzer:gen_rust_project -- //...
 
 ## Using Local Libraries
 
-**IMPORTANT**: With Bazel, you DO NOT add local dependencies to Cargo.toml. This is different from pure Cargo projects!
+**IMPORTANT**: a first-party dependency needs entries in BOTH files, and they do different jobs.
 
 ### Why?
-- **Cargo.toml**: Only for external crates (from crates.io)
-- **BUILD.bazel**: For both external AND local dependencies
-- **Path dependencies** (`path = "../corex"`) break Bazel's crate_universe
+- **Cargo.toml**: `corex = { path = "../corex" }` -- so `cargo build`, `cargo clippy`
+  and a Cargo-driven rust-analyzer can see the edge.
+- **BUILD.bazel**: `deps = [..., "//corex:corex_lib"]` -- so Bazel can see it.
+  `all_crate_deps()` never emits workspace members (cargo-bazel's `deps_map`
+  template skips them), so the label must be written by hand. Always.
+
+Earlier revisions of this guide said path dependencies "break crate_universe"
+and banned them. That is only true when the referenced `Cargo.toml` is not
+listed in `crate.from_cargo(manifests = ...)` -- the splicer symlinks only the
+manifest directory, so `../corex` escapes the spliced root. Every crate in this
+repo is a member of the root workspace and is listed, so path deps are fine and
+are what keeps the two build graphs describing the same program.
 
 ### Example: Using corex in server
 
@@ -94,93 +103,53 @@ use corex::User;  // crate_name from BUILD.bazel
 |----------------|--------------|---------|
 | External (crates.io) | Cargo.toml | `cargo add tokio` |
 | Local (your crates) | BUILD.bazel deps | `"//corex:corex_lib"` |
-| Path dependencies | ❌ Never | Don't use `path = "../"` |
+| First-party crates | BOTH: Cargo.toml `path = "../x"` AND BUILD.bazel `deps` | see below |
 
 ## Creating New Crates
 
-### Option 1: Standalone Crate
+There is ONE Cargo workspace and ONE `Cargo.lock` at the repo root, feeding ONE
+`crate.from_cargo(name = "crates", ...)`. Do not add a second lockfile or a
+second crate repo -- that is what previously made `//server:server_bin` link two
+distinct `serde` rlibs, which no amount of BUILD-file editing could fix.
 
-1. **Create directory structure**:
-```
-mynewcrate/
-├── BUILD.bazel
-├── Cargo.toml
-├── Cargo.lock
-└── src/
-    └── lib.rs (or main.rs)
-```
-
-2. **Create Cargo.toml**:
+1. `mkdir -p mynewcrate/src && cd mynewcrate && cargo init --lib`
+2. Add `"mynewcrate"` to `members` in the root `Cargo.toml`, and have the
+   `[package]` table inherit shared metadata:
 ```toml
 [package]
 name = "mynewcrate"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 ```
-
-3. **Create BUILD.bazel**:
+3. Add `"//mynewcrate:Cargo.toml"` to the existing `manifests` list in
+   `MODULE.bazel`. Do NOT add a new `crate.from_cargo` call.
+4. Write `mynewcrate/BUILD.bazel`:
 ```python
-load("@mynewcrate_crates//:defs.bzl", "all_crate_deps")
+load("@crates//:defs.bzl", "all_crate_deps")
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 
 rust_library(
     name = "mynewcrate_lib",
-    srcs = ["src/lib.rs"],
-    deps = all_crate_deps(),
-    visibility = ["//visibility:public"],
+    srcs = glob(["src/**/*.rs"]),
     crate_name = "mynewcrate",
+    edition = "2024",
+    deps = all_crate_deps(normal = True) + ["//corex:corex_lib"],
+    visibility = ["//visibility:public"],
 )
 
 rust_test(
     name = "mynewcrate_tests",
     crate = ":mynewcrate_lib",
-    deps = all_crate_deps(normal_dev = True),
+    size = "small",
 )
 ```
+5. `cargo build` once to update the root `Cargo.lock`, then `bazel build //...`.
 
-4. **Add to MODULE.bazel**:
-```python
-crate.from_cargo(
-    name = "mynewcrate_crates",
-    manifests = ["//mynewcrate:Cargo.toml"],
-    cargo_lockfile = "//mynewcrate:Cargo.lock",
-)
-use_repo(crate, "mynewcrate_crates")
-```
-
-### Option 2: Add to Existing Workspace (like combos)
-
-1. **Create new crate** in `combos/newservice/`:
-```
-combos/newservice/
-├── BUILD.bazel
-├── Cargo.toml
-└── src/
-    └── main.rs
-```
-
-2. **Update combos/Cargo.toml**:
-```toml
-[workspace]
-resolver = "2"
-members = ["backend", "frontend", "newservice"]
-```
-
-3. **Update MODULE.bazel** to include new manifest:
-```python
-crate.from_cargo(
-    name = "combos_crates",
-    manifests = [
-        "//combos:Cargo.toml",
-        "//combos/backend:Cargo.toml",
-        "//combos/frontend:Cargo.toml",
-        "//combos/newservice:Cargo.toml",  # Add this
-    ],
-    cargo_lockfile = "//combos:Cargo.lock",
-)
-```
+Note the shapes above: `srcs` uses a glob, so the first `mod foo;` does not
+break the Bazel build while leaving cargo happy; `edition` is explicit; and a
+`rust_test` that sets `crate = ...` needs no `deps`, because rules_rust unions
+them with the parent crate's already.
 
 ## Common Patterns
 

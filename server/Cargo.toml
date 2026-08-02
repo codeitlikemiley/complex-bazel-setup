@@ -1,11 +1,11 @@
 [package]
 name = "server"
-version = "0.1.0"
-edition = "2024"
-# Matches the pin in rust-toolchain.toml and MODULE.bazel.
-rust-version = "1.94"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 [dependencies]
+corex = { path = "../corex" }
 axum = "0.8.4"
 serde = { version = "1.0.219", features = ["derive"] }
 tokio = { version = "1.47.1", features = ["full"] }
