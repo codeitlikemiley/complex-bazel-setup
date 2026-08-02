@@ -1,5 +1,5 @@
 load("@combos_crates//:defs.bzl", "all_crate_deps")
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
+load("@rules_rust//rust:defs.bzl", "rust_binary")
 
 rust_binary(
     name = "backend_bin",
@@ -8,9 +8,5 @@ rust_binary(
     edition = "2024",
 )
 
-rust_test(
-    name = "backend_tests",
-    crate = ":backend_bin",
-    deps = all_crate_deps(normal_dev = True),
-)
-
+# No rust_test target: src/main.rs has no tests at all, so the previous
+# backend_tests wrapped an empty binary and reported "0 tests ... ok" forever.

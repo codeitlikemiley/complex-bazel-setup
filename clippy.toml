@@ -1,0 +1,3 @@
+# Keep in sync with rust-toolchain.toml and rust.toolchain() in MODULE.bazel.
+# Lets clippy suggest APIs only where they are actually available to us.
+msrv = "1.94"

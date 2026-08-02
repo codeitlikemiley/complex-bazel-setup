@@ -1,1 +1,11 @@
-# Root BUILD.bazel file - marks this as a Bazel package
+# Root BUILD.bazel file - marks this as a Bazel package.
+#
+# Source files in a package are private by default, so the label_flags in
+# @rules_rust//rust/settings (a different package) cannot see //:clippy.toml or
+# //:rustfmt.toml unless they are exported. Without this, `--config=lint` fails
+# with "target '//:clippy.toml' is not visible from target
+# '@@rules_rust//rust/settings:clippy.toml'".
+exports_files([
+    "clippy.toml",
+    "rustfmt.toml",
+])

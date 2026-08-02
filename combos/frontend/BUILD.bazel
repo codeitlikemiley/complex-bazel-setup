@@ -1,5 +1,5 @@
 load("@combos_crates//:defs.bzl", "all_crate_deps")
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
+load("@rules_rust//rust:defs.bzl", "rust_binary")
 
 rust_binary(
     name = "frontend_bin",
@@ -8,9 +8,6 @@ rust_binary(
     edition = "2024",
 )
 
-rust_test(
-    name = "frontend_tests",
-    crate = ":frontend_bin",
-    deps = all_crate_deps(normal_dev = True),
-)
-
+# No rust_test target: src/main.rs is a hello-world with nothing to assert. Its
+# previous test wrapped two `assert!(true)` calls, which clippy rejects and which
+# reported PASSED regardless of the code. Add one back with the first real test.

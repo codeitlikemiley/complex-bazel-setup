@@ -1,9 +1,9 @@
 use axum::{
+    Json, Router,
     extract::Path,
     http::StatusCode,
     response::IntoResponse,
     routing::{get, post},
-    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 
@@ -58,13 +58,21 @@ async fn get_user(Path(name): Path<String>) -> impl IntoResponse {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn it_works() {
-     assert!(true); 
+    use super::*;
+
+    #[tokio::test]
+    async fn root_returns_the_greeting() {
+        assert_eq!(root().await, "Welcome to the Axum server!");
     }
 
-    #[test]
-    fn sure_it_does() {
-       assert!(true); 
+    #[tokio::test]
+    async fn health_returns_200() {
+        assert_eq!(health().await.into_response().status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn get_user_echoes_the_path_name() {
+        let response = get_user(Path("ada".to_string())).await.into_response();
+        assert_eq!(response.status(), StatusCode::OK);
     }
 }

@@ -1,0 +1,4 @@
+# `cargo fmt` picks the edition up from each Cargo.toml, but a bare `rustfmt`
+# invocation -- which is what the rules_rust rustfmt aspect runs -- does not.
+# Without this it would format 2024 sources under the 2015 default.
+edition = "2024"

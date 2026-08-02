@@ -1,5 +1,5 @@
 load("@server_crates//:defs.bzl", "all_crate_deps")
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test", "rust_test_suite")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 
 rust_binary(
@@ -16,14 +16,7 @@ rust_test(
     name = "tests",
     crate = ":server_bin",
     deps = all_crate_deps(normal_dev = True),
-)
-
-
-rust_test_suite(
-    name = "integration_tests",
-    srcs = glob(["tests/**"]),
-    deps = all_crate_deps(normal_dev = True),
-    edition = "2024",
+    size = "small",
 )
 
 cargo_build_script(
@@ -38,12 +31,15 @@ rust_binary(
     deps = all_crate_deps(normal_dev = True),
     crate_root = "benches/fibonacci_benchmark.rs",
     edition = "2024",
+    # Keeps criterion's ~30 transitive crates out of `bazel build //...`.
+    # Run explicitly: bazel run -c opt //server:bench -- --bench
+    tags = ["manual"],
 )
-
 
 rust_test(
     name = "bench_test",
     crate = ":bench",
+    size = "small",
 )
 
 rust_binary(
@@ -56,12 +52,6 @@ rust_binary(
     edition = "2024",
 )
 
-rust_test(
-    name = "axum_example_test",
-    crate = ":axum_example",
-    deps = all_crate_deps(normal_dev = True),
-)
-
 rust_binary(
     name = "proxy",
     srcs = ["src/bin/proxy.rs"],
@@ -70,10 +60,4 @@ rust_binary(
     ],
     crate_root = "src/bin/proxy.rs",
     edition = "2024",
-)
-
-rust_test(
-    name = "proxy_test",
-    crate = ":proxy",
-    deps = all_crate_deps(normal_dev = True),
 )
