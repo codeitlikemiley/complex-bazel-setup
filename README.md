@@ -84,6 +84,26 @@ cargo bench
 
 Note the `-- --bench`. Without it criterion runs in test mode and measures nothing.
 
+## What is pinned
+
+Every input to a build here is version-pinned, so two machines produce the same
+result:
+
+| input | pinned by |
+|---|---|
+| Bazel | `.bazelversion` |
+| Rust toolchain | `rust.toolchain()` in `MODULE.bazel` + `rust-toolchain.toml` |
+| C/C++ toolchain | `toolchains_llvm` in `MODULE.bazel` (LLVM 20.1.3) |
+| Crates | the single `Cargo.lock` |
+| Bazel modules | `MODULE.bazel.lock`, maintained by CI |
+
+The C toolchain matters more than it looks: every rules_rust rule declares
+`@bazel_tools//tools/cpp:toolchain_type` and `cargo_build_script` calls
+`find_cc_toolchain`, and this graph has 25 crates with build scripts and 2 that
+declare `links`. Before it was pinned, Bazel autodetected the host `cc` -- which
+on the CI runners meant gcc driving `ld.gold`, and a `the gold linker is
+deprecated and has known bugs with Rust` warning on every link.
+
 ## The two rules that keep the build systems in agreement
 
 ### 1. The toolchain is pinned in two places, at the same version
