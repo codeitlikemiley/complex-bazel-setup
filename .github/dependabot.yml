@@ -21,8 +21,19 @@ updates:
     schedule:
       interval: monthly
 
-  # Keeps bazel_dep versions in MODULE.bazel current.
-  - package-ecosystem: bazel-modules
+  # Keeps bazel_dep versions in MODULE.bazel current. The ecosystem is "bazel";
+  # "bazel-modules" is not a valid value and made Dependabot reject this whole
+  # file, silently disabling the cargo and github-actions entries above it too.
+  - package-ecosystem: bazel
     directory: /
     schedule:
       interval: monthly
+
+  # NOT enabled: package-ecosystem "rust-toolchain".
+  #
+  # It is a real ecosystem and it would bump rust-toolchain.toml -- which is
+  # exactly why it is dangerous here. The Rust version is pinned in TWO places
+  # that must agree: rust-toolchain.toml (cargo) and rust.toolchain(versions=)
+  # in MODULE.bazel (Bazel). Dependabot would update only the first, leaving
+  # cargo and Bazel compiling the same source with different compilers -- the
+  # original defect this repo was fixed for. Bump both by hand, together.
